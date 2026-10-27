@@ -1,0 +1,13 @@
+---
+description: Commit and push changes to the public data models
+alwaysApply: true
+---
+
+# Commit and push
+
+This repo is the public copy of the final data models only.
+
+When you change a model here, commit and push to `origin` before the task is done.
+
+- Do not add working notes, ops scripts, credentials, or sample data.
+- Message says why the model changed, in one or two sentences.

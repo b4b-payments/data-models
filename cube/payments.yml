@@ -1,0 +1,232 @@
+cubes:
+  - name: payment_rails
+    sql_table: spike.dim_payment_rail
+    description: Payment rail catalogue. fact.rail_sk joins to id.
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: rail_code
+        sql: rail_code
+        type: string
+      - name: rail_name
+        sql: rail_name
+        type: string
+      - name: scheme_family
+        sql: scheme_family
+        type: string
+      - name: source_system
+        sql: source_system
+        type: string
+      - name: active_flag
+        sql: active_flag
+        type: boolean
+
+    measures:
+      - name: count
+        type: count
+
+  - name: dates
+    sql_table: spike.dim_date
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: calendar_date
+        sql: calendar_date
+        type: time
+      - name: yyyymmdd
+        sql: yyyymmdd
+        type: number
+      - name: year_num
+        sql: year_num
+        type: number
+      - name: month_num
+        sql: month_num
+        type: number
+      - name: quarter_num
+        sql: quarter_num
+        type: number
+    measures:
+      - name: count
+        type: count
+
+  - name: currencies
+    sql_table: spike.dim_currency
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+      - name: currency_code
+        sql: currency_code
+        type: string
+      - name: currency_name
+        sql: currency_name
+        type: string
+    measures:
+      - name: count
+        type: count
+
+  - name: entities
+    sql_table: spike.dim_entity
+    description: Legal entity. PSU grain is the client legal entity. fact.entity_sk joins here.
+
+    dimensions:
+      - name: entity_sk
+        sql: entity_sk
+        type: number
+        primary_key: true
+      - name: entity_type
+        sql: entity_type
+        type: string
+      - name: entity_name
+        sql: entity_name
+        type: string
+      - name: entity_status
+        sql: entity_status
+        type: string
+      - name: platform
+        sql: platform
+        type: string
+      - name: source_system
+        sql: source_system
+        type: string
+      - name: source_pk
+        sql: source_pk
+        type: string
+      - name: b4b_cle_id
+        sql: b4b_cle_id
+        type: string
+      - name: legal_entity_country
+        sql: legal_entity_country
+        type: string
+      - name: gid_sk
+        sql: gid_sk
+        type: number
+
+    measures:
+      - name: count
+        type: count
+
+  - name: accounts
+    sql_table: spike.dim_account
+    description: Currency account. fact.account_sk joins here. Portal rows link to the legal entity.
+
+    joins:
+      - name: entities
+        sql: "{CUBE}.entity_sk = {entities.entity_sk}"
+        relationship: many_to_one
+
+    dimensions:
+      - name: account_sk
+        sql: account_sk
+        type: number
+        primary_key: true
+      - name: entity_sk
+        sql: entity_sk
+        type: number
+      - name: source_system
+        sql: source_system
+        type: string
+      - name: source_pk
+        sql: source_pk
+        type: string
+      - name: account_name
+        sql: account_name
+        type: string
+      - name: account_status
+        sql: account_status
+        type: string
+      - name: currency_sk
+        sql: currency_sk
+        type: number
+      - name: bc_company_number
+        sql: bc_company_number
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: payments
+    sql_table: spike.fact_payment_deposit
+    description: Payment fact. entity_sk is the legal entity. account_sk is the currency account.
+
+    joins:
+      - name: entities
+        sql: "{CUBE}.entity_sk = {entities.entity_sk}"
+        relationship: many_to_one
+      - name: accounts
+        sql: "{CUBE}.account_sk = {accounts.account_sk}"
+        relationship: many_to_one
+      - name: payment_rails
+        sql: "{CUBE}.rail_sk = {payment_rails.id}"
+        relationship: many_to_one
+      - name: currencies
+        sql: "{CUBE}.currency_sk = {currencies.id}"
+        relationship: many_to_one
+      - name: dates
+        sql: "{CUBE}.date_sk = {dates.id}"
+        relationship: many_to_one
+
+    dimensions:
+      - name: payment_sk
+        sql: payment_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+      - name: source_payment_id
+        sql: source_payment_id
+        type: string
+      - name: entity_sk
+        sql: entity_sk
+        type: number
+      - name: account_sk
+        sql: account_sk
+        type: number
+      - name: rail_sk
+        sql: rail_sk
+        type: number
+      - name: currency_sk
+        sql: currency_sk
+        type: number
+      - name: date_sk
+        sql: date_sk
+        type: number
+      - name: payment_status
+        sql: payment_status
+        type: string
+      - name: payment_direction
+        sql: payment_direction
+        type: string
+      - name: event_ts
+        sql: event_ts
+        type: time
+      - name: sca_applied
+        sql: sca_applied
+        type: boolean
+
+    measures:
+      - name: count
+        type: count
+      - name: amount_sum
+        sql: amount
+        type: sum
+      - name: with_account_count
+        type: count
+        filters:
+          - sql: "{CUBE}.account_sk IS NOT NULL"
+      - name: with_entity_count
+        type: count
+        filters:
+          - sql: "{CUBE}.entity_sk IS NOT NULL"
+      - name: with_rail_count
+        type: count
+        filters:
+          - sql: "{CUBE}.rail_sk IS NOT NULL"

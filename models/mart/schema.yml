@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: dim_gid
+    description: One row per global identifier. Identifiers are not invented.
+    columns:
+      - name: gid_sk
+        description: Integer primary key
+        tests: [unique, not_null]
+      - name: gid
+        description: Natural key
+        tests: [unique, not_null]
+
+  - name: dim_entity
+    description: One organisational entity. PSU grain is the client legal entity. Agent and Intermediate are included.
+    columns:
+      - name: entity_sk
+        tests: [unique, not_null]
+      - name: entity_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Agent', 'Intermediate', 'PSU', 'TSP']
+      - name: source_system
+        tests: [not_null]
+      - name: source_pk
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [source_system, entity_type, source_pk]
+          config:
+            enabled: false
+
+  - name: dim_account
+    description: One company or float account. Portal rows resolve entity_sk to the client legal entity.
+    columns:
+      - name: account_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests: [not_null]
+      - name: source_pk
+        tests: [not_null]
+      - name: entity_sk
+        description: Foreign key to dim_entity. Required for portal accounts.
+        tests:
+          - not_null:
+              config:
+                where: "source_system = 'portal_b4b'"
+
+  - name: fact_payment_deposit
+    description: >
+      One portal payment notification or one Oversight payment.
+      entity_sk is the legal entity. account_sk is the currency account.
+      Portal account is COALESCE(payment company, deposit company, viban company).
+    columns:
+      - name: payment_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests: [not_null]
+      - name: source_payment_id
+        tests: [not_null]
+      - name: amount
+        description: Additive measure in transaction currency
+      - name: entity_sk
+        description: Legal entity, via the account
+      - name: account_sk
+        description: Currency account. Null when no company can be resolved.
+        tests:
+          - not_null:
+              config:
+                where: "source_system = 'portal_b4b'"
+                severity: warn
+      - name: date_sk
+        tests:
+          - relationships:
+              arguments:
+                to: source('spike_live', 'dim_date')
+                field: id
+              config:
+                severity: warn
+      - name: currency_sk
+        tests:
+          - relationships:
+              arguments:
+                to: source('spike_live', 'dim_currency')
+                field: id
+              config:
+                severity: warn
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [source_system, source_payment_id]
+          config:
+            enabled: false

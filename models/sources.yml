@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: spike_stg
+    description: Landed source tables in schema spike. Read-only for these models.
+    schema: spike
+    tables:
+      - name: stg_orchestrator_global_identifiers
+        description: Global identifier registry
+      - name: stg_b4b_client_legal_entities
+        description: Client legal entities. This is the PSU grain.
+      - name: stg_b4b_companies
+        description: Portal companies. Each row is a currency account.
+      - name: stg_b4b_institutions
+        description: Institutions (Intermediate)
+      - name: stg_b4b_banking_circle_transaction_notifications
+        description: Portal payment notifications. This is the portal payment grain.
+      - name: stg_b4b_payments
+        description: Portal payments, used to attach a company to a notification
+      - name: stg_b4b_company_deposits
+        description: Portal deposits, used to attach a company to a notification
+      - name: stg_b4b_vibans
+      - name: stg_b4b_companies_vibans
+      - name: stg_oversight_clients
+        description: Oversight agents
+      - name: stg_oversight_companies
+        description: Oversight companies (accounts)
+      - name: stg_oversight_payments
+        description: Oversight payments
+      - name: stg_bc_banking_circle_routing_codes
+        description: Routing catalogue for rails
+
+  - name: spike_live
+    description: Reference dimensions built by sql/ in this repo
+    schema: spike
+    tables:
+      - name: dim_payment_rail
+      - name: dim_currency
+      - name: dim_date

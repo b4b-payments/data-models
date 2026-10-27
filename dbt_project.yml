@@ -1,0 +1,19 @@
+name: b4b_models
+version: 1.0.0
+config-version: 2
+
+profile: b4b_models
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+target-path: target
+clean-targets: [target, dbt_packages]
+
+models:
+  b4b_models:
+    +materialized: table
+    mart:
+      +schema: spike
+      +materialized: table
