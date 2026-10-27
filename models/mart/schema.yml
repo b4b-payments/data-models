@@ -12,7 +12,7 @@ models:
         tests: [unique, not_null]
 
   - name: dim_entity
-    description: One organisational entity. PSU grain is the client legal entity. Agent and Intermediate are included.
+    description: One organisational entity. PSU grain is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included.
     columns:
       - name: entity_sk
         tests: [unique, not_null]
@@ -43,15 +43,15 @@ models:
       - name: source_pk
         tests: [not_null]
       - name: entity_sk
-        description: Foreign key to dim_entity. Required for portal accounts.
+        description: Foreign key to dim_entity. Required for B4B and Bread for Scrap accounts.
         tests:
           - not_null:
               config:
-                where: "source_system = 'portal_b4b'"
+                where: "source_system in ('portal_b4b', 'portal_b4s')"
 
   - name: fact_payment_deposit
     description: >
-      One portal payment notification or one Oversight payment.
+      One portal payment notification (B4B or Bread for Scrap) or one Oversight payment.
       entity_sk is the legal entity. account_sk is the currency account.
       Portal account is COALESCE(payment company, deposit company, viban company).
     columns:
@@ -70,7 +70,7 @@ models:
         tests:
           - not_null:
               config:
-                where: "source_system = 'portal_b4b'"
+                where: "source_system in ('portal_b4b', 'portal_b4s')"
                 severity: warn
       - name: date_sk
         tests:

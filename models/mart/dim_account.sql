@@ -4,7 +4,7 @@
 ) }}
 
 -- Grain: one portal/Oversight company = float/currency account.
--- Always links to CLE entity via entity_sk (portal). No GID on accounts.
+-- Portal accounts link to the CLE on the same portal (B4B or B4S). No GID on accounts.
 --
 -- Live staging column notes (portal companies):
 --   display_name, name, currency, client_legal_entity_id, closed
@@ -19,7 +19,7 @@ with portal_accounts as (
         cast(c.id as varchar) as source_pk,
         coalesce(c.display_name, c.name, cast(c.id as varchar)) as account_name,
         upper(trim(c.currency)) as currency_code,
-        cast(c.client_legal_entity_id as varchar) as b4b_cle_id,
+        cast(c.client_legal_entity_id as varchar) as cle_id,
         case
             when c.closed then 'closed'
             when c.closed is false then 'open'
@@ -27,6 +27,23 @@ with portal_accounts as (
         end as account_status,
         cast(null as varchar) as bc_company_number
     from {{ source('spike_stg', 'stg_b4b_companies') }} c
+    where c.client_legal_entity_id is not null
+
+    union all
+
+    select
+        'portal_b4s' as source_system,
+        cast(c.id as varchar) as source_pk,
+        coalesce(c.display_name, c.name, cast(c.id as varchar)) as account_name,
+        upper(trim(c.currency)) as currency_code,
+        cast(c.client_legal_entity_id as varchar) as cle_id,
+        case
+            when c.closed then 'closed'
+            when c.closed is false then 'open'
+            else null
+        end as account_status,
+        cast(null as varchar) as bc_company_number
+    from {{ source('spike_stg', 'stg_b4s_companies') }} c
     where c.client_legal_entity_id is not null
 ),
 
@@ -38,7 +55,7 @@ oversight_accounts as (
         cast(c.id as varchar) as source_pk,
         coalesce(c.legal_name, c.trading_name, cast(c.id as varchar)) as account_name,
         cast(null as varchar) as currency_code,
-        cast(null as varchar) as b4b_cle_id,
+        cast(null as varchar) as cle_id,
         case
             when cl.enabled then 'enabled'
             when cl.enabled is false then 'disabled'
@@ -69,9 +86,10 @@ joined as (
         getdate() as loaded_at
     from unioned u
     left join {{ ref('dim_entity') }} e
-        on e.source_system = 'portal_b4b'
+        on e.source_system = u.source_system
+       and e.source_system in ('portal_b4b', 'portal_b4s')
        and e.entity_type = 'PSU'
-       and e.source_pk = u.b4b_cle_id
+       and e.source_pk = u.cle_id
     left join {{ source('spike_live', 'dim_currency') }} cur
         on cur.currency_code = u.currency_code
 )

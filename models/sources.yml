@@ -21,6 +21,20 @@ sources:
         description: Portal deposits, used to attach a company to a notification
       - name: stg_b4b_vibans
       - name: stg_b4b_companies_vibans
+      - name: stg_b4s_client_legal_entities
+        description: Bread for Scrap client legal entities. PSU grain for that portal.
+      - name: stg_b4s_companies
+        description: Bread for Scrap companies. Each row is a currency account.
+      - name: stg_b4s_institutions
+        description: Bread for Scrap institutions (Intermediate)
+      - name: stg_b4s_banking_circle_transaction_notifications
+        description: Bread for Scrap payment notifications. Same grain as the B4B notifications.
+      - name: stg_b4s_payments
+        description: Bread for Scrap payments, used to attach a company to a notification
+      - name: stg_b4s_company_deposits
+        description: Bread for Scrap deposits, used to attach a company to a notification
+      - name: stg_b4s_vibans
+      - name: stg_b4s_companies_vibans
       - name: stg_oversight_clients
         description: Oversight agents
       - name: stg_oversight_companies

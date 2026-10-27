@@ -7,9 +7,9 @@ A portal company is a currency account. The legal entity is the client legal ent
 | Model | Grain |
 |---|---|
 | `dim_gid` | One global identifier |
-| `dim_entity` | One legal entity. PSU is the client legal entity. Agent and Intermediate are included. |
-| `dim_account` | One currency account, linked to its legal entity |
-| `fact_payment_deposit` | One portal payment notification, or one Oversight payment |
+| `dim_entity` | One legal entity. PSU is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included. |
+| `dim_account` | One currency account, linked to the legal entity on the same portal |
+| `fact_payment_deposit` | One portal payment notification (B4B or Bread for Scrap), or one Oversight payment |
 | `dim_date` | One calendar day. `id` is days since 2000-01-01, plus 1 |
 | `dim_currency` | One currency. `id` is a stable integer ordered by ISO code |
 | `dim_payment_rail` | One rail code (`F###`) |

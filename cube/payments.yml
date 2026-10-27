@@ -101,6 +101,9 @@ cubes:
       - name: b4b_cle_id
         sql: b4b_cle_id
         type: string
+      - name: b4s_cle_id
+        sql: b4s_cle_id
+        type: string
       - name: legal_entity_country
         sql: legal_entity_country
         type: string

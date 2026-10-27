@@ -5,9 +5,9 @@
     sort=['date_sk', 'source_system']
 ) }}
 
--- Grain: one portal payment notification, or one Oversight payment.
--- Party keys: entity_sk (legal entity) and account_sk (currency account).
--- Portal account: COALESCE(payment.company_id, deposit.company_id, viban→company_id).
+-- Grain: one portal payment notification (B4B or B4S), or one Oversight payment.
+-- Portal account: COALESCE(payments.company_id, deposits.company_id, viban→company_id)
+-- on the same portal, then dim_account / entity_sk via that company.
 
 with oversight as (
     select
@@ -46,51 +46,140 @@ with oversight as (
         on d.calendar_date = cast(p.created_at as date)
 ),
 
--- Latest portal payment row per BCTN (enrich company_id)
-pay as (
+-- Latest portal payment row per BCTN (enrich company_id), per portal
+pay_src as (
     select
+        'portal_b4b' as source_system,
+        id,
         banking_circle_transaction_notification_id,
-        company_id,
-        row_number() over (
-            partition by banking_circle_transaction_notification_id
-            order by id desc
-        ) as rn
+        company_id
     from {{ source('spike_stg', 'stg_b4b_payments') }}
     where banking_circle_transaction_notification_id is not null
-),
-
--- Latest deposit row per BCTN
-dep as (
+    union all
     select
+        'portal_b4s' as source_system,
+        id,
         banking_circle_transaction_notification_id,
-        company_id,
-        row_number() over (
-            partition by banking_circle_transaction_notification_id
-            order by id desc
-        ) as rn
-    from {{ source('spike_stg', 'stg_b4b_company_deposits') }}
+        company_id
+    from {{ source('spike_stg', 'stg_b4s_payments') }}
     where banking_circle_transaction_notification_id is not null
 ),
 
--- VIBAN number → company (one company per viban_number)
-vb as (
+pay as (
     select
-        v.viban_number,
-        cv.company_id,
+        source_system,
+        banking_circle_transaction_notification_id,
+        company_id,
         row_number() over (
-            partition by v.viban_number
-            order by cv.company_id
+            partition by source_system, banking_circle_transaction_notification_id
+            order by id desc
         ) as rn
+    from pay_src
+),
+
+-- Latest deposit row per BCTN, per portal
+dep_src as (
+    select
+        'portal_b4b' as source_system,
+        id,
+        banking_circle_transaction_notification_id,
+        company_id
+    from {{ source('spike_stg', 'stg_b4b_company_deposits') }}
+    where banking_circle_transaction_notification_id is not null
+    union all
+    select
+        'portal_b4s' as source_system,
+        id,
+        banking_circle_transaction_notification_id,
+        company_id
+    from {{ source('spike_stg', 'stg_b4s_company_deposits') }}
+    where banking_circle_transaction_notification_id is not null
+),
+
+dep as (
+    select
+        source_system,
+        banking_circle_transaction_notification_id,
+        company_id,
+        row_number() over (
+            partition by source_system, banking_circle_transaction_notification_id
+            order by id desc
+        ) as rn
+    from dep_src
+),
+
+-- VIBAN number → company, one company per viban on that portal
+vb_src as (
+    select
+        'portal_b4b' as source_system,
+        v.viban_number,
+        cv.company_id
     from {{ source('spike_stg', 'stg_b4b_vibans') }} v
     inner join {{ source('spike_stg', 'stg_b4b_companies_vibans') }} cv
         on cv.viban_id = v.id
     where v.banking_circle_client_number is not null
       and nullif(trim(v.viban_number), '') is not null
+    union all
+    select
+        'portal_b4s' as source_system,
+        v.viban_number,
+        cv.company_id
+    from {{ source('spike_stg', 'stg_b4s_vibans') }} v
+    inner join {{ source('spike_stg', 'stg_b4s_companies_vibans') }} cv
+        on cv.viban_id = v.id
+    where v.banking_circle_client_number is not null
+      and nullif(trim(v.viban_number), '') is not null
+),
+
+vb as (
+    select
+        source_system,
+        viban_number,
+        company_id,
+        row_number() over (
+            partition by source_system, viban_number
+            order by company_id
+        ) as rn
+    from vb_src
+),
+
+bctn as (
+    select
+        'portal_b4b' as source_system,
+        id,
+        transaction_date,
+        value_date,
+        created_at,
+        transfer_amount,
+        transaction_amount,
+        status,
+        credit_debit_indicator,
+        viban_number,
+        booking_reference,
+        transfer_amount_currency,
+        transaction_amount_currency
+    from {{ source('spike_stg', 'stg_b4b_banking_circle_transaction_notifications') }}
+    union all
+    select
+        'portal_b4s' as source_system,
+        id,
+        transaction_date,
+        value_date,
+        created_at,
+        transfer_amount,
+        transaction_amount,
+        status,
+        credit_debit_indicator,
+        viban_number,
+        booking_reference,
+        transfer_amount_currency,
+        transaction_amount_currency
+    from {{ source('spike_stg', 'stg_b4s_banking_circle_transaction_notifications') }}
 ),
 
 portal as (
     select
-        'portal_b4b' as source_system,
+        bctn.source_system,
         cast(bctn.id as varchar) as source_payment_id,
         a.account_sk,
         a.entity_sk,
@@ -106,18 +195,21 @@ portal as (
             else bctn.credit_debit_indicator
         end as payment_direction,
         cast(null as boolean) as sca_applied
-    from {{ source('spike_stg', 'stg_b4b_banking_circle_transaction_notifications') }} bctn
+    from bctn
     left join pay
-        on pay.banking_circle_transaction_notification_id = bctn.id
+        on pay.source_system = bctn.source_system
+       and pay.banking_circle_transaction_notification_id = bctn.id
        and pay.rn = 1
     left join dep
-        on dep.banking_circle_transaction_notification_id = bctn.id
+        on dep.source_system = bctn.source_system
+       and dep.banking_circle_transaction_notification_id = bctn.id
        and dep.rn = 1
     left join vb
-        on vb.viban_number = bctn.viban_number
+        on vb.source_system = bctn.source_system
+       and vb.viban_number = bctn.viban_number
        and vb.rn = 1
     left join {{ ref('dim_account') }} a
-        on a.source_system = 'portal_b4b'
+        on a.source_system = bctn.source_system
        and a.source_pk = cast(
             coalesce(pay.company_id, dep.company_id, vb.company_id) as varchar
         )
