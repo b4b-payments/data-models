@@ -37,7 +37,7 @@ pr AS (
         CAST(NULL AS VARCHAR) AS reason,
         TRIM(code) AS full_routing_code
     FROM spike.stg_b4b_payment_routings
-    WHERE REGEXP_SUBSTR(code, 'F[0-9]{3}') IS NOT NULL
+    WHERE REGEXP_SUBSTR(code, 'F[0-9]{3}') <> ''
 ),
 pr_b4s AS (
     SELECT
@@ -45,7 +45,7 @@ pr_b4s AS (
         description AS rail_name,
         TRIM(code) AS full_routing_code
     FROM spike.stg_b4s_payment_routings
-    WHERE REGEXP_SUBSTR(code, 'F[0-9]{3}') IS NOT NULL
+    WHERE REGEXP_SUBSTR(code, 'F[0-9]{3}') <> ''
 ),
 codes AS (
     SELECT rail_code FROM bc
