@@ -4,6 +4,8 @@ Final reporting star. Schema: `spike`.
 
 A portal company is a currency account. The legal entity is the client legal entity. Facts carry both keys. Global IDs come from the identifier registry only.
 
+**Product** is first-class for reporting: `B4B` | `B4S` | `OVERSIGHT` (see [docs/DECISIONS.md](docs/DECISIONS.md)). Distinct from technical `source_system`.
+
 | Model | Grain |
 |---|---|
 | `dim_gid` | One global identifier |

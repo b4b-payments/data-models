@@ -92,9 +92,15 @@ cubes:
       - name: platform
         sql: platform
         type: string
+        description: Legacy column name; same codes as product (prefer product in BI)
+      - name: product
+        sql: platform
+        type: string
+        description: Business product — B4B | B4S | OVERSIGHT (first-class)
       - name: source_system
         sql: source_system
         type: string
+        description: Technical lineage (portal_b4b | portal_b4s | oversight)
       - name: source_pk
         sql: source_pk
         type: string
@@ -184,6 +190,17 @@ cubes:
       - name: source_system
         sql: source_system
         type: string
+        description: Technical lineage (portal_b4b | portal_b4s | oversight)
+      - name: product
+        sql: >
+          CASE {CUBE}.source_system
+            WHEN 'portal_b4b' THEN 'B4B'
+            WHEN 'portal_b4s' THEN 'B4S'
+            WHEN 'oversight' THEN 'OVERSIGHT'
+            ELSE {CUBE}.source_system
+          END
+        type: string
+        description: Business product — B4B | B4S | OVERSIGHT (first-class for dashboards)
       - name: source_payment_id
         sql: source_payment_id
         type: string

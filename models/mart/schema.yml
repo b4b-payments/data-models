@@ -12,7 +12,7 @@ models:
         tests: [unique, not_null]
 
   - name: dim_entity
-    description: One organisational entity. PSU grain is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included.
+    description: One organisational entity. PSU grain is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included. Reporting product is B4B | B4S | OVERSIGHT (column `platform` today; prefer name `product` in BI).
     columns:
       - name: entity_sk
         tests: [unique, not_null]
@@ -22,6 +22,8 @@ models:
           - accepted_values:
               arguments:
                 values: ['Agent', 'Intermediate', 'PSU', 'TSP']
+      - name: platform
+        description: Product codes B4B | B4S | OVERSIGHT (reporting name is product; rename planned)
       - name: source_system
         tests: [not_null]
       - name: source_pk
