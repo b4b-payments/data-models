@@ -6,18 +6,18 @@ models:
     columns:
       - name: gid_sk
         description: Integer primary key
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: gid
         description: Natural key
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: dim_entity
     description: One organisational entity. PSU grain is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included. Reporting product is B4B | B4S | OVERSIGHT (column `platform` today; prefer name `product` in BI).
     columns:
       - name: entity_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: entity_type
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               arguments:
@@ -25,10 +25,10 @@ models:
       - name: platform
         description: Product codes B4B | B4S | OVERSIGHT (reporting name is product; rename planned)
       - name: source_system
-        tests: [not_null]
+        data_tests: [not_null]
       - name: source_pk
-        tests: [not_null]
-    tests:
+        data_tests: [not_null]
+    data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [source_system, entity_type, source_pk]
@@ -39,14 +39,14 @@ models:
     description: One company or float account. Portal rows resolve entity_sk to the client legal entity.
     columns:
       - name: account_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests: [not_null]
+        data_tests: [not_null]
       - name: source_pk
-        tests: [not_null]
+        data_tests: [not_null]
       - name: entity_sk
         description: Foreign key to dim_entity. Required for B4B and Bread for Scrap accounts.
-        tests:
+        data_tests:
           - not_null:
               config:
                 where: "source_system in ('portal_b4b', 'portal_b4s')"
@@ -58,24 +58,24 @@ models:
       Portal account is COALESCE(payment company, deposit company, viban company).
     columns:
       - name: payment_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests: [not_null]
+        data_tests: [not_null]
       - name: source_payment_id
-        tests: [not_null]
+        data_tests: [not_null]
       - name: amount
         description: Additive measure in transaction currency
       - name: entity_sk
         description: Legal entity, via the account
       - name: account_sk
         description: Currency account. Null when no company can be resolved.
-        tests:
+        data_tests:
           - not_null:
               config:
                 where: "source_system in ('portal_b4b', 'portal_b4s')"
                 severity: warn
       - name: date_sk
-        tests:
+        data_tests:
           - relationships:
               arguments:
                 to: source('spike_live', 'dim_date')
@@ -83,14 +83,14 @@ models:
               config:
                 severity: warn
       - name: currency_sk
-        tests:
+        data_tests:
           - relationships:
               arguments:
                 to: source('spike_live', 'dim_currency')
                 field: id
               config:
                 severity: warn
-    tests:
+    data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [source_system, source_payment_id]
@@ -101,47 +101,47 @@ models:
     description: One portal card. Account comes from the card user company. PAN is not stored.
     columns:
       - name: card_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['portal_b4b', 'portal_b4s']
       - name: source_card_id
-        tests: [not_null]
+        data_tests: [not_null]
 
   - name: dim_cardholder
     columns:
       - name: cardholder_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: dim_card_product
     columns:
       - name: card_product_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: dim_card_scheme
     columns:
       - name: card_scheme_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: scheme_code
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: dim_processor
     columns:
       - name: processor_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: processor_code
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: fact_card_authorisation
     description: GPS authorisations, including declines. Not scheme settlement.
     columns:
       - name: auth_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['gps_mc', 'gps_visa']
@@ -150,9 +150,9 @@ models:
     description: Scheme settlement. One GPS presentment. The only settlement total.
     columns:
       - name: financial_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['gps_mc', 'gps_visa']
@@ -161,15 +161,15 @@ models:
     description: Scheme fees from GPS CardFee only.
     columns:
       - name: fee_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: fact_card_balance_posting
     description: Customer-ledger spend. Financial rows that post to the balance.
     columns:
       - name: posting_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['portal_b4b', 'portal_b4s']
@@ -178,15 +178,15 @@ models:
     description: EHI observations. Amounts are observed_ and are not scheme or ledger measures.
     columns:
       - name: observation_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
 
   - name: fact_card_load
     description: Portal loads and GPS load confirmations, kept apart by source_system.
     columns:
       - name: load_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: source_system
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['portal_b4b', 'portal_b4s', 'gps_mc', 'gps_visa']
@@ -195,9 +195,9 @@ models:
     description: Links between card evidence. Amounts are not stored here.
     columns:
       - name: match_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: match_method
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['traceid_lifecycle', 'transaction_link', 'fin_id_to_txn_id', 'auth_id_to_txn_id', 'processor_ref']
@@ -206,9 +206,9 @@ models:
     description: Current lifecycle state and counts. Summable amounts stay on the atomic facts.
     columns:
       - name: snapshot_sk
-        tests: [unique, not_null]
+        data_tests: [unique, not_null]
       - name: lifecycle_state
-        tests:
+        data_tests:
           - accepted_values:
               arguments:
                 values: ['observed_ehi', 'confirmed_gps', 'unmatched', 'reversed', 'chargeback']

@@ -1,7 +1,10 @@
 name: b4b_models
 version: 1.0.0
 config-version: 2
-require-dbt-version: [">=1.12.0", "<1.13.0"]
+# UAT still runs dbt 1.12.6. The range includes dbt v2 so the VS Code
+# extension language server can load this project. dbt cannot express
+# "1.12 or 2.x, excluding 1.13" as one version range.
+require-dbt-version: [">=1.12.0", "<3.0.0"]
 
 flags:
   send_anonymous_usage_stats: false
@@ -19,6 +22,15 @@ clean-targets: [target, dbt_packages]
 models:
   b4b_models:
     +materialized: table
+    +static_analysis: strict
     mart:
       +schema: spike
       +materialized: table
+
+data_tests:
+  b4b_models:
+    +static_analysis: strict
+
+sources:
+  b4b_models:
+    +static_analysis: strict

@@ -6,3 +6,4 @@ profiles.yml
 .env
 .env.*
 .DS_Store
+dbt_internal_packages/
