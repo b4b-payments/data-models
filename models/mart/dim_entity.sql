@@ -129,6 +129,7 @@ select
     cast(null as integer) as partner_entity_sk,
     cast(null as integer) as institution_entity_sk,
     platform,
+    platform as product,
     source_system,
     source_pk,
     b4b_cle_id,

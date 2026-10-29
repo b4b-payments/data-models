@@ -14,7 +14,7 @@
 
 **Model:**
 
-- `dim_entity.platform` today holds these codes — treat it as **product** for reporting; next mart change should rename the column to `product` (or dual-publish `product` = `platform`) so naming matches BI.
+- `dim_entity.platform` holds these codes. As of 29 Oct 2026 the mart also selects `product` with the same value. Cube `entities.product` reads `product`. `platform` stays so older SQL still runs.
 - Facts must always resolve to a product (via entity, or a denormalised `product` on the fact).
 - Cube exposes a **`product`** dimension on payments and entities (not only `source_system`).
 

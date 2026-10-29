@@ -94,7 +94,7 @@ cubes:
         type: string
         description: Legacy column name; same codes as product (prefer product in BI)
       - name: product
-        sql: platform
+        sql: product
         type: string
         description: Business product — B4B | B4S | OVERSIGHT (first-class)
       - name: source_system
@@ -192,15 +192,9 @@ cubes:
         type: string
         description: Technical lineage (portal_b4b | portal_b4s | oversight)
       - name: product
-        sql: >
-          CASE {CUBE}.source_system
-            WHEN 'portal_b4b' THEN 'B4B'
-            WHEN 'portal_b4s' THEN 'B4S'
-            WHEN 'oversight' THEN 'OVERSIGHT'
-            ELSE {CUBE}.source_system
-          END
+        sql: product
         type: string
-        description: Business product — B4B | B4S | OVERSIGHT (first-class for dashboards)
+        description: Business product — B4B | B4S | OVERSIGHT. Stored on fact_payment.
       - name: source_payment_id
         sql: source_payment_id
         type: string
@@ -238,6 +232,33 @@ cubes:
       - name: amount_sum
         sql: amount
         type: sum
+        description: >
+          Native-currency amount. MUST be broken down or filtered by
+          currencies.currency_code (or currency_sk). Never use alone.
+      - name: amount_gbp
+        sql: amount
+        type: sum
+        description: Native amount where currency is GBP only
+        filters:
+          - sql: "{currencies.currency_code} = 'GBP'"
+      - name: amount_eur
+        sql: amount
+        type: sum
+        description: Native amount where currency is EUR only
+        filters:
+          - sql: "{currencies.currency_code} = 'EUR'"
+      - name: amount_dkk
+        sql: amount
+        type: sum
+        description: Native amount where currency is DKK only
+        filters:
+          - sql: "{currencies.currency_code} = 'DKK'"
+      - name: amount_usd
+        sql: amount
+        type: sum
+        description: Native amount where currency is USD only
+        filters:
+          - sql: "{currencies.currency_code} = 'USD'"
       - name: with_account_count
         type: count
         filters:

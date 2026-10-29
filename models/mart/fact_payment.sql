@@ -238,6 +238,12 @@ final as (
     select
         row_number() over (order by source_system, source_payment_id) as payment_sk,
         source_system,
+        case source_system
+            when 'portal_b4b' then 'B4B'
+            when 'portal_b4s' then 'B4S'
+            when 'oversight' then 'OVERSIGHT'
+            else source_system
+        end as product,
         source_payment_id,
         entity_sk,
         account_sk,
