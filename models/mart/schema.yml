@@ -58,7 +58,14 @@ models:
       Portal account is COALESCE(payment company, deposit company, viban company).
     columns:
       - name: payment_sk
-        data_tests: [unique, not_null]
+        description: Stable FNV hash of source_system and source_payment_id. Not a 1..N sequence.
+        data_tests:
+          - not_null
+          - unique:
+              config:
+                tags: ['weekly_reconcile']
+      - name: batch_run_id
+        description: Pipeline run that last wrote the row. Empty on a manual full refresh.
       - name: source_system
         data_tests: [not_null]
       - name: source_payment_id

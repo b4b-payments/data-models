@@ -1,6 +1,10 @@
 {{ config(
     alias='fact_payment',
     tags=['payments', 'mart'],
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key=['source_system', 'source_payment_id'],
+    on_schema_change='append_new_columns',
     dist='entity_sk',
     sort=['date_sk', 'source_system']
 ) }}
@@ -10,7 +14,22 @@
 -- Portal account: COALESCE(payments.company_id, deposits.company_id, viban→company_id)
 -- on the same portal, then dim_account / entity_sk via that company.
 
-with oversight as (
+with
+{% if is_incremental() %}
+changed_bctn as (
+    select source_system, business_key
+    from {{ source('spike_ops', 'pipeline_changed_key') }}
+    where run_id = '{{ var("pipeline_run_id", "") }}'
+      and key_role = 'bctn_id'
+),
+changed_oversight as (
+    select business_key
+    from {{ source('spike_ops', 'pipeline_changed_key') }}
+    where run_id = '{{ var("pipeline_run_id", "") }}'
+      and key_role = 'oversight_payment_id'
+),
+{% endif %}
+oversight as (
     select
         'oversight' as source_system,
         cast(p.id as varchar) as source_payment_id,
@@ -45,6 +64,9 @@ with oversight as (
         on cur.currency_code = upper(trim(p.currency))
     left join {{ source('spike_live', 'dim_date') }} d
         on d.calendar_date = cast(p.created_at as date)
+    {% if is_incremental() %}
+    where cast(p.id as varchar) in (select business_key from changed_oversight)
+    {% endif %}
 ),
 
 -- Latest portal payment row per BCTN (enrich company_id), per portal
@@ -56,6 +78,11 @@ pay_src as (
         company_id
     from {{ source('spike_stg', 'stg_b4b_payments') }}
     where banking_circle_transaction_notification_id is not null
+    {% if is_incremental() %}
+      and cast(banking_circle_transaction_notification_id as varchar) in (
+          select business_key from changed_bctn where source_system = 'portal_b4b'
+      )
+    {% endif %}
     union all
     select
         'portal_b4s' as source_system,
@@ -64,6 +91,11 @@ pay_src as (
         company_id
     from {{ source('spike_stg', 'stg_b4s_payments') }}
     where banking_circle_transaction_notification_id is not null
+    {% if is_incremental() %}
+      and cast(banking_circle_transaction_notification_id as varchar) in (
+          select business_key from changed_bctn where source_system = 'portal_b4s'
+      )
+    {% endif %}
 ),
 
 pay as (
@@ -87,6 +119,11 @@ dep_src as (
         company_id
     from {{ source('spike_stg', 'stg_b4b_company_deposits') }}
     where banking_circle_transaction_notification_id is not null
+    {% if is_incremental() %}
+      and cast(banking_circle_transaction_notification_id as varchar) in (
+          select business_key from changed_bctn where source_system = 'portal_b4b'
+      )
+    {% endif %}
     union all
     select
         'portal_b4s' as source_system,
@@ -95,6 +132,11 @@ dep_src as (
         company_id
     from {{ source('spike_stg', 'stg_b4s_company_deposits') }}
     where banking_circle_transaction_notification_id is not null
+    {% if is_incremental() %}
+      and cast(banking_circle_transaction_notification_id as varchar) in (
+          select business_key from changed_bctn where source_system = 'portal_b4s'
+      )
+    {% endif %}
 ),
 
 dep as (
@@ -120,6 +162,15 @@ vb_src as (
         on cv.viban_id = v.id
     where v.banking_circle_client_number is not null
       and nullif(trim(v.viban_number), '') is not null
+    {% if is_incremental() %}
+      and v.viban_number in (
+          select b.viban_number
+          from {{ source('spike_stg', 'stg_b4b_banking_circle_transaction_notifications') }} b
+          where cast(b.id as varchar) in (
+              select business_key from changed_bctn where source_system = 'portal_b4b'
+          )
+      )
+    {% endif %}
     union all
     select
         'portal_b4s' as source_system,
@@ -130,6 +181,15 @@ vb_src as (
         on cv.viban_id = v.id
     where v.banking_circle_client_number is not null
       and nullif(trim(v.viban_number), '') is not null
+    {% if is_incremental() %}
+      and v.viban_number in (
+          select b.viban_number
+          from {{ source('spike_stg', 'stg_b4s_banking_circle_transaction_notifications') }} b
+          where cast(b.id as varchar) in (
+              select business_key from changed_bctn where source_system = 'portal_b4s'
+          )
+      )
+    {% endif %}
 ),
 
 vb as (
@@ -160,6 +220,11 @@ bctn as (
         transfer_amount_currency,
         transaction_amount_currency
     from {{ source('spike_stg', 'stg_b4b_banking_circle_transaction_notifications') }}
+    {% if is_incremental() %}
+    where cast(id as varchar) in (
+        select business_key from changed_bctn where source_system = 'portal_b4b'
+    )
+    {% endif %}
     union all
     select
         'portal_b4s' as source_system,
@@ -176,6 +241,11 @@ bctn as (
         transfer_amount_currency,
         transaction_amount_currency
     from {{ source('spike_stg', 'stg_b4s_banking_circle_transaction_notifications') }}
+    {% if is_incremental() %}
+    where cast(id as varchar) in (
+        select business_key from changed_bctn where source_system = 'portal_b4s'
+    )
+    {% endif %}
 ),
 
 portal as (
@@ -236,7 +306,7 @@ unioned as (
 
 final as (
     select
-        row_number() over (order by source_system, source_payment_id) as payment_sk,
+        fnv_hash(source_system || '|' || source_payment_id) as payment_sk,
         source_system,
         case source_system
             when 'portal_b4b' then 'B4B'
@@ -255,7 +325,8 @@ final as (
         payment_status,
         payment_direction,
         sca_applied,
-        getdate() as loaded_at
+        getdate() as loaded_at,
+        '{{ var("pipeline_run_id", "") }}' as batch_run_id
     from unioned
 )
 

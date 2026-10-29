@@ -68,6 +68,18 @@ sources:
       - name: stg_gps_visa_card_fee
       - name: stg_gps_visa_card_load_unload
 
+  - name: spike_ops
+    description: Pipeline control tables written by the payments CDC runner.
+    schema: spike
+    tables:
+      - name: pipeline_changed_key
+        description: Source keys a micro-batch must reprocess in fact_payment.
+        columns:
+          - name: run_id
+          - name: source_system
+          - name: key_role
+          - name: business_key
+
   - name: spike_live
     description: Reference dimensions built by sql/ in this repo
     schema: spike
