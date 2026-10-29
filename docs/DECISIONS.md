@@ -33,3 +33,7 @@ Strict mode is enforced by dbt v2. dbt 1.12 stores the config and does not run s
 - Cube exposes a **`product`** dimension on payments and entities (not only `source_system`).
 
 Related: Airbyte not in active path (2026-10-28); no user-facing “star” naming.
+
+## 2026-10-29 — Oversight null payment_direction defaults to Outgoing (final)
+
+Oversight rows without `banking_circle_api_response.payment.classification` are failed BC error payloads (no payment object). Product is outbound initiation; coalesce those to `Outgoing` in `fact_payment` instead of leaving null.

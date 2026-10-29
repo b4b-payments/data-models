@@ -41,9 +41,14 @@ oversight as (
         p.created_at as event_ts,
         p.amount,
         p.status as payment_status,
-        nullif(
-            json_extract_path_text(p.banking_circle_api_response, 'payment', 'classification'),
-            ''
+        -- Oversight is outbound initiation. Successful rows have payment.classification;
+        -- failed BC error JSON has none — default those to Outgoing (not unknown).
+        coalesce(
+            nullif(
+                json_extract_path_text(p.banking_circle_api_response, 'payment', 'classification'),
+                ''
+            ),
+            'Outgoing'
         ) as payment_direction,
         case
             when p.sca_applied then true
