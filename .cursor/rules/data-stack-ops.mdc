@@ -1,0 +1,64 @@
+---
+description: uat111 data-stack working rules — paths, branches, architecture, secrets, naming
+alwaysApply: true
+---
+
+# Data stack on uat111
+
+Edit git clones under `/root/DEV`: `data-cube`, `data-superset`, `data-models`, `data-engineering`. Workspace: `/root/DEV/data-stack.code-workspace`.
+
+`/root/khauram` is runtime only (compose, `.env`, `ACCESS.md`). Do not commit from there.
+
+## GitHub and branches
+
+Remotes: `https://github.com/b4b-payments/data-cube` and `data-superset` (write), plus `data-models` and `data-engineering`.
+
+- `main` — default; clone and PR target
+- `develop` — UAT line (synced with `main` for now)
+- `production` — prod line (later, when ECS is wired)
+
+```bash
+git switch main && git pull
+git switch -c feature/short-slug
+gh pr create --base main --title "feat: short summary"
+```
+
+## Architecture
+
+Self-serve: Superset → Cube SQL → Redshift `destin2` (schema `spike`).
+Eng-only optional database: `Redshift (eng-only)`.
+Product filter is first-class: `B4B` | `B4S` | `OVERSIGHT`.
+Airbyte is not in the active plan this phase.
+
+## URLs (VPN/VPC only)
+
+Prefer `*.b4b.rocks`. Cube `https://cube.b4b.rocks/`. B4B BI `https://dw.b4b.rocks/`. Payments `https://dw.b4b.rocks/superset/dashboard/payments/`.
+
+Eng ports on `172.19.0.103` if needed: Cube HTTP `:4000`, BI `:4001`, Cube SQL `:4002`.
+
+## Secrets
+
+AWS Secrets Manager `eu-west-2` is source of truth: `dev-data-cube_secrets`, `dev-data-superset_secrets`. Host notes: `/root/khauram/ACCESS.md` (do not commit).
+
+Hydrate before compose (`AWS_PROFILE=390630218113_AdministratorAccess`, `AWS_REGION=eu-west-2`):
+
+```bash
+python3 /root/DEV/data-cube/scripts/secrets_env.py hydrate --env-file /root/khauram/cube/.env
+python3 /root/DEV/data-superset/scripts/secrets_env.py hydrate --env-file /root/khauram/superset-bi/.env
+```
+
+Push `.env` edits with `secrets_env.py sync --env-file …`.
+
+## Naming
+
+User-facing: B4B BI, Cube, Payments, B4B / B4S / OVERSIGHT.
+Avoid: Spike, Payment Star, star.
+Warehouse objects may still say `spike` / `airbyte_spike` until rename.
+
+## Deploy
+
+Current UAT is compose on uat111. Later: images we build, on ECS.
+
+Cube runtime `/root/khauram/cube`. BI runtime `/root/khauram/superset-bi`. Rewire payments: `python3 /root/DEV/data-superset/scripts/wire_superset_to_cube.py`.
+
+Open, not blocking: branch protection/CI, ECR/ECS, platform→product rename, Google/SSO, UX feedback skill. Record decisions in `docs/DECISIONS.md`.

@@ -1,0 +1,20 @@
+---
+description: Write commit messages that say why the change was made
+alwaysApply: true
+---
+
+# Commit messages
+
+Write the message for a reader who was not in the session. One or two sentences. Say why the change was made and what it changes for the model, dashboard, or workflow.
+
+Use a complete sentence, the way recent history does:
+
+```text
+Rename the payment fact to fact_payment so the name covers incoming and outgoing payments.
+```
+
+```text
+Record product as a first-class payments attribute so dashboards can filter B4B, B4S, and OVERSIGHT without portal table names.
+```
+
+Leave out file lists, secret values, and labels such as `WIP` or `update files`. If the first sentence cannot carry the reason, add a short second sentence.

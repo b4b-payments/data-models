@@ -1,0 +1,15 @@
+---
+description: Sibling data repos under /root/DEV for cross-repo dependencies
+alwaysApply: true
+---
+
+# Data stack siblings
+
+| Repo | Path | Role |
+|---|---|---|
+| data-models | `/root/DEV/data-models` | this repo — dbt SoT |
+| data-cube | `/root/DEV/data-cube` | Cube YAML must stay aligned |
+| data-superset | `/root/DEV/data-superset` | BI consumer via Cube |
+| data-engineering | `/root/DEV/data-engineering` | enterprise model docs |
+
+Graph: [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md). Workspace: `/root/DEV/data-stack.code-workspace`.

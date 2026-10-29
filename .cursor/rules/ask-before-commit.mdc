@@ -1,0 +1,13 @@
+---
+description: Ask before committing or pushing after any change
+alwaysApply: true
+---
+
+# Ask before commit and push
+
+When this session has changed files, ask Khauram whether to commit and whether to push. Wait for a yes before either step.
+
+- A yes to commit is not a yes to push. Confirm each one.
+- Ask at the end of the change, including model, docs, and rule edits.
+- Leave the work uncommitted until he answers.
+- Follow `.cursor/rules/commit-messages.mdc` for the message.
