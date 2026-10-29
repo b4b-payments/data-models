@@ -1,0 +1,126 @@
+# Cards star Cube models.
+# Amounts are read from the fact that owns them.
+# EHI observed_ amounts are not measures.
+# There is no class view with SUM(amount).
+# Deploy only after host data is started:
+#   copy to data:/root/khauram/cube/model/ and restart the cube container.
+
+cubes:
+  - name: card_financial
+    sql_table: spike.fact_card_financial
+    description: Scheme settlement. One GPS presentment.
+
+    dimensions:
+      - name: financial_sk
+        sql: financial_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: scheme_settlement
+        sql: settlement_amount
+        type: sum
+        description: Scheme settlement from GPS presentments only
+      - name: count
+        type: count
+
+  - name: card_balance_posting
+    sql_table: spike.fact_card_balance_posting
+    description: Customer-ledger spend. Financial rows that post to the balance.
+
+    dimensions:
+      - name: posting_sk
+        sql: posting_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: customer_ledger_spend
+        sql: txn_amount
+        type: sum
+        description: Customer-ledger spend. Not scheme settlement
+      - name: count
+        type: count
+
+  - name: card_fee
+    sql_table: spike.fact_card_fee
+    description: Scheme fees from GPS CardFee.
+
+    dimensions:
+      - name: fee_sk
+        sql: fee_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: scheme_fee
+        sql: fee_amount
+        type: sum
+      - name: count
+        type: count
+
+  - name: card_load
+    sql_table: spike.fact_card_load
+    description: Portal loads and GPS load confirmations. The two filters are not added together.
+
+    dimensions:
+      - name: load_sk
+        sql: load_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: portal_loads
+        sql: "case when source_system in ('portal_b4b', 'portal_b4s') and successful = 1 then amount end"
+        type: sum
+      - name: gps_loads
+        sql: "case when source_system in ('gps_mc', 'gps_visa') then amount end"
+        type: sum
+      - name: count
+        type: count
+
+  - name: card_authorisation
+    sql_table: spike.fact_card_authorisation
+    description: GPS authorisations, including declines. Not scheme settlement.
+
+    dimensions:
+      - name: auth_sk
+        sql: auth_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: card_ehi_observation
+    sql_table: spike.fact_card_ehi_observation
+    description: EHI observations. Counts only. Observed amounts are not measures.
+
+    dimensions:
+      - name: observation_sk
+        sql: observation_sk
+        type: number
+        primary_key: true
+      - name: source_system
+        sql: source_system
+        type: string
+
+    measures:
+      - name: count
+        type: count

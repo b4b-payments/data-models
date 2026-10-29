@@ -43,6 +43,30 @@ sources:
         description: Oversight payments
       - name: stg_bc_banking_circle_routing_codes
         description: Routing catalogue for rails
+      - name: stg_b4b_cards
+      - name: stg_b4s_cards
+      - name: stg_b4b_cardholders
+      - name: stg_b4s_cardholders
+      - name: stg_b4b_card_products
+      - name: stg_b4s_card_products
+      - name: stg_b4b_users
+        description: Portal users, id and company_id only
+      - name: stg_b4s_users
+        description: Bread for Scrap users, id and company_id only
+      - name: stg_b4b_card_transactions
+      - name: stg_b4s_card_transactions
+      - name: stg_b4b_card_loads
+      - name: stg_b4s_card_loads
+      - name: stg_b4b_card_unloads
+      - name: stg_b4s_card_unloads
+      - name: stg_gps_mc_card_authorisation
+      - name: stg_gps_mc_card_financial
+      - name: stg_gps_mc_card_fee
+      - name: stg_gps_mc_card_load_unload
+      - name: stg_gps_visa_card_authorisation
+      - name: stg_gps_visa_card_financial
+      - name: stg_gps_visa_card_fee
+      - name: stg_gps_visa_card_load_unload
 
   - name: spike_live
     description: Reference dimensions built by sql/ in this repo

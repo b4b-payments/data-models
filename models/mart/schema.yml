@@ -96,3 +96,119 @@ models:
             combination_of_columns: [source_system, source_payment_id]
           config:
             enabled: false
+
+  - name: dim_card
+    description: One portal card. Account comes from the card user company. PAN is not stored.
+    columns:
+      - name: card_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['portal_b4b', 'portal_b4s']
+      - name: source_card_id
+        tests: [not_null]
+
+  - name: dim_cardholder
+    columns:
+      - name: cardholder_sk
+        tests: [unique, not_null]
+
+  - name: dim_card_product
+    columns:
+      - name: card_product_sk
+        tests: [unique, not_null]
+
+  - name: dim_card_scheme
+    columns:
+      - name: card_scheme_sk
+        tests: [unique, not_null]
+      - name: scheme_code
+        tests: [unique, not_null]
+
+  - name: dim_processor
+    columns:
+      - name: processor_sk
+        tests: [unique, not_null]
+      - name: processor_code
+        tests: [unique, not_null]
+
+  - name: fact_card_authorisation
+    description: GPS authorisations, including declines. Not scheme settlement.
+    columns:
+      - name: auth_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['gps_mc', 'gps_visa']
+
+  - name: fact_card_financial
+    description: Scheme settlement. One GPS presentment. The only settlement total.
+    columns:
+      - name: financial_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['gps_mc', 'gps_visa']
+
+  - name: fact_card_fee
+    description: Scheme fees from GPS CardFee only.
+    columns:
+      - name: fee_sk
+        tests: [unique, not_null]
+
+  - name: fact_card_balance_posting
+    description: Customer-ledger spend. Financial rows that post to the balance.
+    columns:
+      - name: posting_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['portal_b4b', 'portal_b4s']
+
+  - name: fact_card_ehi_observation
+    description: EHI observations. Amounts are observed_ and are not scheme or ledger measures.
+    columns:
+      - name: observation_sk
+        tests: [unique, not_null]
+
+  - name: fact_card_load
+    description: Portal loads and GPS load confirmations, kept apart by source_system.
+    columns:
+      - name: load_sk
+        tests: [unique, not_null]
+      - name: source_system
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['portal_b4b', 'portal_b4s', 'gps_mc', 'gps_visa']
+
+  - name: bridge_card_lifecycle_match
+    description: Links between card evidence. Amounts are not stored here.
+    columns:
+      - name: match_sk
+        tests: [unique, not_null]
+      - name: match_method
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['traceid_lifecycle', 'transaction_link', 'fin_id_to_txn_id', 'auth_id_to_txn_id', 'processor_ref']
+
+  - name: fct_card_transaction_snapshot
+    description: Current lifecycle state and counts. Summable amounts stay on the atomic facts.
+    columns:
+      - name: snapshot_sk
+        tests: [unique, not_null]
+      - name: lifecycle_state
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['observed_ehi', 'confirmed_gps', 'unmatched', 'reversed', 'chargeback']
