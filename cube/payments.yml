@@ -162,7 +162,7 @@ cubes:
         type: count
 
   - name: payments
-    sql_table: spike.fact_payment_deposit
+    sql_table: spike.fact_payment
     description: Payment fact. entity_sk is the legal entity. account_sk is the currency account.
 
     joins:

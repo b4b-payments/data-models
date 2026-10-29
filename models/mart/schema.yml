@@ -51,7 +51,7 @@ models:
               config:
                 where: "source_system in ('portal_b4b', 'portal_b4s')"
 
-  - name: fact_payment_deposit
+  - name: fact_payment
     description: >
       One portal payment notification (B4B or Bread for Scrap) or one Oversight payment.
       entity_sk is the legal entity. account_sk is the currency account.

@@ -1,11 +1,12 @@
 {{ config(
-    alias='fact_payment_deposit',
+    alias='fact_payment',
     tags=['payments', 'mart'],
     dist='entity_sk',
     sort=['date_sk', 'source_system']
 ) }}
 
 -- Grain: one portal payment notification (B4B or B4S), or one Oversight payment.
+-- Incoming and outgoing. Deposit is only the incoming leg.
 -- Portal account: COALESCE(payments.company_id, deposits.company_id, viban→company_id)
 -- on the same portal, then dim_account / entity_sk via that company.
 

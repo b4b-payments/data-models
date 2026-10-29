@@ -1,7 +1,7 @@
 -- Grain: one calendar day.
 -- PK: id = DATEDIFF(day, DATE '2000-01-01', calendar_date) + 1
 -- Range: 2000-01-01 .. 2040-12-31. Do not prepend dates; that would shift every id.
--- Fact FK: fact_payment_deposit.date_sk → dim_date.id
+-- Fact FK: fact_payment.date_sk → dim_date.id
 
 CREATE TABLE spike.dim_date (
     id              INTEGER     NOT NULL,

@@ -2,7 +2,7 @@
 -- PK: id, a stable integer ordered by currency_code.
 -- Natural key: currency_code (ISO 4217 alpha).
 -- Seed: ISO 4217, plus any payment currency that is not in that list.
--- Fact FK: fact_payment_deposit.currency_sk → dim_currency.id
+-- Fact FK: fact_payment.currency_sk → dim_currency.id
 
 CREATE TABLE spike.dim_currency (
     id              INTEGER     NOT NULL,

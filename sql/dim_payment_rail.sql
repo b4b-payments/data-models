@@ -1,7 +1,7 @@
 -- Grain: one rail code (F###).
 -- PK: id, ordered by rail_code.
 -- Natural key: rail_code. Display name prefers the B4B portal description, then Bread for Scrap, then the routing catalogue.
--- Fact FK: fact_payment_deposit.rail_sk → dim_payment_rail.id
+-- Fact FK: fact_payment.rail_sk → dim_payment_rail.id
 
 CREATE TABLE spike.dim_payment_rail (
     id                INTEGER      NOT NULL,
