@@ -72,6 +72,81 @@ models:
         data_tests: [not_null]
       - name: amount
         description: Additive measure in transaction currency
+        data_tests: [not_null]
+      - name: payment_status_sk
+        description: Lifecycle status. Portal outgoing uses payments.status. Incoming uses Banking Circle flags.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_payment_status')
+                field: payment_status_sk
+      - name: source_status_sk
+        description: Raw Banking Circle or Oversight status.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_payment_status')
+                field: payment_status_sk
+      - name: payment_profile_sk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_payment_profile')
+                field: payment_profile_sk
+              config:
+                severity: warn
+      - name: failure_reason_sk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_failure_reason')
+                field: failure_reason_sk
+              config:
+                severity: warn
+      - name: payment_type_sk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_payment_type')
+                field: payment_type_sk
+              config:
+                severity: warn
+      - name: debtor_party_sk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_party')
+                field: party_sk
+              config:
+                severity: warn
+      - name: creditor_party_sk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_party')
+                field: party_sk
+              config:
+                severity: warn
+      - name: debtor_country_sk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_country')
+                field: country_sk
+              config:
+                severity: warn
+      - name: creditor_country_sk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_country')
+                field: country_sk
+              config:
+                severity: warn
       - name: entity_sk
         description: Legal entity, via the account
       - name: account_sk
@@ -91,6 +166,7 @@ models:
                 severity: warn
       - name: currency_sk
         data_tests:
+          - not_null
           - relationships:
               arguments:
                 to: source('spike_live', 'dim_currency')
@@ -98,11 +174,53 @@ models:
               config:
                 severity: warn
     data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "status_updated_date_sk is null or transaction_date_sk is null or status_updated_date_sk >= transaction_date_sk"
+          config:
+            severity: warn
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [source_system, source_payment_id]
           config:
-            enabled: false
+            tags: ['weekly_reconcile']
+
+  - name: dim_payment_status
+    columns:
+      - name: payment_status_sk
+        data_tests: [unique, not_null]
+      - name: normalised_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['processed', 'pending', 'rejected', 'returned', 'reversed', 'failed', '~unknown']
+
+  - name: dim_payment_profile
+    columns:
+      - name: payment_profile_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_failure_reason
+    columns:
+      - name: failure_reason_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_payment_type
+    columns:
+      - name: payment_type_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_country
+    columns:
+      - name: country_sk
+        data_tests: [unique, not_null]
+      - name: alpha2
+        data_tests: [unique, not_null]
+
+  - name: dim_party
+    columns:
+      - name: party_sk
+        data_tests: [unique, not_null]
 
   - name: dim_card
     description: One portal card. Account comes from the card user company. PAN is not stored.

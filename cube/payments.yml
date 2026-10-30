@@ -71,6 +71,209 @@ cubes:
       - name: count
         type: count
 
+  - name: payment_statuses
+    sql_table: spike.dim_payment_status
+    description: Lifecycle and raw payment status. One row per status source and source status.
+
+    dimensions:
+      - name: payment_status_sk
+        sql: payment_status_sk
+        type: number
+        primary_key: true
+      - name: status_source
+        sql: status_source
+        type: string
+      - name: source_status
+        sql: source_status
+        type: string
+      - name: normalised_status
+        sql: normalised_status
+        type: string
+      - name: is_terminal
+        sql: is_terminal
+        type: boolean
+      - name: sort_order
+        sql: sort_order
+        type: number
+      - name: description
+        sql: description
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: source_statuses
+    extends: payment_statuses
+
+  - name: payment_profiles
+    sql_table: spike.dim_payment_profile
+    description: Direction and resolution flags for one payment.
+
+    dimensions:
+      - name: payment_profile_sk
+        sql: payment_profile_sk
+        type: number
+        primary_key: true
+      - name: payment_direction
+        sql: payment_direction
+        type: string
+      - name: sca_applied
+        sql: sca_applied
+        type: boolean
+      - name: is_returned
+        sql: is_returned
+        type: boolean
+      - name: is_reversed
+        sql: is_reversed
+        type: boolean
+      - name: account_resolved
+        sql: account_resolved
+        type: boolean
+      - name: rail_resolved
+        sql: rail_resolved
+        type: boolean
+
+    measures:
+      - name: count
+        type: count
+
+  - name: failure_reasons
+    sql_table: spike.dim_failure_reason
+
+    dimensions:
+      - name: failure_reason_sk
+        sql: failure_reason_sk
+        type: number
+        primary_key: true
+      - name: reason_source
+        sql: reason_source
+        type: string
+      - name: reason_code
+        sql: reason_code
+        type: string
+      - name: reason_text
+        sql: reason_text
+        type: string
+      - name: category
+        sql: category
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: payment_types
+    sql_table: spike.dim_payment_type
+
+    dimensions:
+      - name: payment_type_sk
+        sql: payment_type_sk
+        type: number
+        primary_key: true
+      - name: type_source
+        sql: type_source
+        type: string
+      - name: type_code
+        sql: type_code
+        type: string
+      - name: type_label
+        sql: type_label
+        type: string
+      - name: scheme_family
+        sql: scheme_family
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: countries
+    sql_table: spike.dim_country
+
+    dimensions:
+      - name: country_sk
+        sql: country_sk
+        type: number
+        primary_key: true
+      - name: alpha2
+        sql: alpha2
+        type: string
+      - name: alpha3
+        sql: alpha3
+        type: string
+      - name: country_name
+        sql: country_name
+        type: string
+      - name: region
+        sql: region
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
+  - name: debtor_countries
+    extends: countries
+    dimensions:
+      - name: debtor_code
+        sql: alpha2
+        type: string
+
+  - name: creditor_countries
+    extends: countries
+    dimensions:
+      - name: creditor_code
+        sql: alpha2
+        type: string
+
+  - name: value_dates
+    extends: dates
+
+  - name: status_updated_dates
+    extends: dates
+
+  - name: parties
+    sql_table: spike.dim_party
+    description: External party. The account number is not stored.
+
+    dimensions:
+      - name: party_sk
+        sql: party_sk
+        type: number
+        primary_key: true
+      - name: product
+        sql: product
+        type: string
+      - name: display_name
+        sql: display_name
+        type: string
+      - name: display_institution
+        sql: display_institution
+        type: string
+      - name: display_country_code
+        sql: display_country_code
+        type: string
+      - name: client_count
+        sql: client_count
+        type: number
+      - name: name_count
+        sql: name_count
+        type: number
+
+    measures:
+      - name: count
+        type: count
+
+  - name: debtor_parties
+    extends: parties
+
+  - name: creditor_parties
+    extends: parties
+
+  - name: external_parties
+    extends: parties
+
   - name: entities
     sql_table: spike.dim_entity
     description: Legal entity. PSU grain is the client legal entity. fact.entity_sk joins here.
@@ -181,6 +384,42 @@ cubes:
       - name: dates
         sql: "{CUBE}.date_sk = {dates.id}"
         relationship: many_to_one
+      - name: payment_statuses
+        sql: "{CUBE}.payment_status_sk = {payment_statuses.payment_status_sk}"
+        relationship: many_to_one
+      - name: source_statuses
+        sql: "{CUBE}.source_status_sk = {source_statuses.payment_status_sk}"
+        relationship: many_to_one
+      - name: payment_profiles
+        sql: "{CUBE}.payment_profile_sk = {payment_profiles.payment_profile_sk}"
+        relationship: many_to_one
+      - name: failure_reasons
+        sql: "{CUBE}.failure_reason_sk = {failure_reasons.failure_reason_sk}"
+        relationship: many_to_one
+      - name: payment_types
+        sql: "{CUBE}.payment_type_sk = {payment_types.payment_type_sk}"
+        relationship: many_to_one
+      - name: debtor_countries
+        sql: "{CUBE}.debtor_country_sk = {debtor_countries.country_sk}"
+        relationship: many_to_one
+      - name: creditor_countries
+        sql: "{CUBE}.creditor_country_sk = {creditor_countries.country_sk}"
+        relationship: many_to_one
+      - name: value_dates
+        sql: "{CUBE}.value_date_sk = {value_dates.id}"
+        relationship: many_to_one
+      - name: status_updated_dates
+        sql: "{CUBE}.status_updated_date_sk = {status_updated_dates.id}"
+        relationship: many_to_one
+      - name: debtor_parties
+        sql: "{CUBE}.debtor_party_sk = {debtor_parties.party_sk}"
+        relationship: many_to_one
+      - name: creditor_parties
+        sql: "{CUBE}.creditor_party_sk = {creditor_parties.party_sk}"
+        relationship: many_to_one
+      - name: external_parties
+        sql: "{external_party} = {external_parties.party_sk}"
+        relationship: many_to_one
 
     dimensions:
       - name: payment_sk
@@ -225,6 +464,15 @@ cubes:
       - name: sca_applied
         sql: sca_applied
         type: boolean
+      - name: external_party
+        sql: >
+          CASE
+            WHEN {CUBE}.creditor_party_sk <> FNV_HASH('~unknown') THEN {CUBE}.creditor_party_sk
+            WHEN {CUBE}.debtor_party_sk <> FNV_HASH('~unknown') THEN {CUBE}.debtor_party_sk
+            ELSE NULL
+          END
+        type: number
+        description: The role key that is not the unknown token. Null when both roles are unknown.
 
     measures:
       - name: count
@@ -271,3 +519,50 @@ cubes:
         type: count
         filters:
           - sql: "{CUBE}.rail_sk IS NOT NULL"
+      - name: processed_count
+        type: count
+        filters:
+          - sql: "{payment_statuses.normalised_status} = 'processed'"
+      - name: terminal_count
+        type: count
+        filters:
+          - sql: "{payment_statuses.is_terminal} = true"
+      - name: success_rate
+        sql: "1.0 * {processed_count} / NULLIF({terminal_count}, 0)"
+        type: number
+        description: Processed payments divided by terminal payments.
+      - name: returned_count
+        type: count
+        filters:
+          - sql: "{payment_statuses.normalised_status} = 'returned'"
+      - name: return_rate
+        sql: "1.0 * {returned_count} / NULLIF({count}, 0)"
+        type: number
+      - name: failure_count
+        type: count
+        filters:
+          - sql: "{payment_statuses.normalised_status} = 'failed'"
+      - name: settlement_latency_p50_hours
+        sql: >
+          PERCENTILE_CONT(0.5) WITHIN GROUP (
+            ORDER BY CASE
+              WHEN {CUBE}.status_updated_at IS NULL THEN NULL
+              ELSE (EXTRACT(EPOCH FROM {CUBE}.status_updated_at) - EXTRACT(EPOCH FROM {CUBE}.event_ts)) / 3600.0
+            END
+          )
+        type: number
+        description: Median hours from the booking date to status_updated_at. The start is the booking date. Rows with no status time are left out.
+      - name: settlement_latency_p95_hours
+        sql: >
+          PERCENTILE_CONT(0.95) WITHIN GROUP (
+            ORDER BY CASE
+              WHEN {CUBE}.status_updated_at IS NULL THEN NULL
+              ELSE (EXTRACT(EPOCH FROM {CUBE}.status_updated_at) - EXTRACT(EPOCH FROM {CUBE}.event_ts)) / 3600.0
+            END
+          )
+        type: number
+        description: 95th percentile hours from the booking date to status_updated_at. The start is the booking date. Rows with no status time are left out.
+      - name: distinct_counterparties
+        sql: "{external_party}"
+        type: count_distinct
+        description: Distinct external parties. The unknown token is excluded. A party that pays and receives is one party.

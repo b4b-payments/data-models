@@ -1,0 +1,250 @@
+alpha2,alpha3,name,region,is_placeholder_suspect
+AD,AND,Andorra,,false
+AE,ARE,United Arab Emirates,,false
+AF,AFG,Afghanistan,,false
+AG,ATG,Antigua and Barbuda,,false
+AI,AIA,Anguilla,,false
+AL,ALB,Albania,,false
+AM,ARM,Armenia,,false
+AO,AGO,Angola,,false
+AQ,ATA,Antarctica,,false
+AR,ARG,Argentina,,false
+AS,ASM,American Samoa,,false
+AT,AUT,Austria,,false
+AU,AUS,Australia,,false
+AW,ABW,Aruba,,false
+AX,ALA,Åland Islands,,false
+AZ,AZE,Azerbaijan,,false
+BA,BIH,Bosnia and Herzegovina,,false
+BB,BRB,Barbados,,false
+BD,BGD,Bangladesh,,false
+BE,BEL,Belgium,,false
+BF,BFA,Burkina Faso,,false
+BG,BGR,Bulgaria,,false
+BH,BHR,Bahrain,,false
+BI,BDI,Burundi,,false
+BJ,BEN,Benin,,false
+BL,BLM,Saint Barthélemy,,false
+BM,BMU,Bermuda,,false
+BN,BRN,Brunei Darussalam,,false
+BO,BOL,"Bolivia, Plurinational State of",,false
+BQ,BES,"Bonaire, Sint Eustatius and Saba",,false
+BR,BRA,Brazil,,false
+BS,BHS,Bahamas,,false
+BT,BTN,Bhutan,,false
+BV,BVT,Bouvet Island,,false
+BW,BWA,Botswana,,false
+BY,BLR,Belarus,,false
+BZ,BLZ,Belize,,false
+CA,CAN,Canada,,false
+CC,CCK,Cocos (Keeling) Islands,,false
+CD,COD,"Congo, The Democratic Republic of the",,false
+CF,CAF,Central African Republic,,false
+CG,COG,Congo,,false
+CH,CHE,Switzerland,,false
+CI,CIV,Côte d'Ivoire,,false
+CK,COK,Cook Islands,,false
+CL,CHL,Chile,,false
+CM,CMR,Cameroon,,false
+CN,CHN,China,,false
+CO,COL,Colombia,,false
+CR,CRI,Costa Rica,,false
+CU,CUB,Cuba,,false
+CV,CPV,Cabo Verde,,false
+CW,CUW,Curaçao,,false
+CX,CXR,Christmas Island,,false
+CY,CYP,Cyprus,,false
+CZ,CZE,Czechia,,false
+DE,DEU,Germany,,false
+DJ,DJI,Djibouti,,false
+DK,DNK,Denmark,,false
+DM,DMA,Dominica,,false
+DO,DOM,Dominican Republic,,false
+DZ,DZA,Algeria,,false
+EC,ECU,Ecuador,,false
+EE,EST,Estonia,,false
+EG,EGY,Egypt,,false
+EH,ESH,Western Sahara,,false
+ER,ERI,Eritrea,,false
+ES,ESP,Spain,,false
+ET,ETH,Ethiopia,,false
+FI,FIN,Finland,,false
+FJ,FJI,Fiji,,false
+FK,FLK,Falkland Islands (Malvinas),,false
+FM,FSM,"Micronesia, Federated States of",,false
+FO,FRO,Faroe Islands,,false
+FR,FRA,France,,false
+GA,GAB,Gabon,,false
+GB,GBR,United Kingdom,,false
+GD,GRD,Grenada,,false
+GE,GEO,Georgia,,false
+GF,GUF,French Guiana,,false
+GG,GGY,Guernsey,,false
+GH,GHA,Ghana,,false
+GI,GIB,Gibraltar,,false
+GL,GRL,Greenland,,false
+GM,GMB,Gambia,,false
+GN,GIN,Guinea,,false
+GP,GLP,Guadeloupe,,false
+GQ,GNQ,Equatorial Guinea,,false
+GR,GRC,Greece,,false
+GS,SGS,South Georgia and the South Sandwich Islands,,false
+GT,GTM,Guatemala,,false
+GU,GUM,Guam,,false
+GW,GNB,Guinea-Bissau,,false
+GY,GUY,Guyana,,false
+HK,HKG,Hong Kong,,false
+HM,HMD,Heard Island and McDonald Islands,,false
+HN,HND,Honduras,,false
+HR,HRV,Croatia,,false
+HT,HTI,Haiti,,false
+HU,HUN,Hungary,,false
+ID,IDN,Indonesia,,false
+IE,IRL,Ireland,,false
+IL,ISR,Israel,,false
+IM,IMN,Isle of Man,,false
+IN,IND,India,,false
+IO,IOT,British Indian Ocean Territory,,false
+IQ,IRQ,Iraq,,false
+IR,IRN,"Iran, Islamic Republic of",,false
+IS,ISL,Iceland,,false
+IT,ITA,Italy,,false
+JE,JEY,Jersey,,false
+JM,JAM,Jamaica,,false
+JO,JOR,Jordan,,false
+JP,JPN,Japan,,false
+KE,KEN,Kenya,,false
+KG,KGZ,Kyrgyzstan,,false
+KH,KHM,Cambodia,,false
+KI,KIR,Kiribati,,false
+KM,COM,Comoros,,false
+KN,KNA,Saint Kitts and Nevis,,false
+KP,PRK,"Korea, Democratic People's Republic of",,false
+KR,KOR,"Korea, Republic of",,false
+KW,KWT,Kuwait,,false
+KY,CYM,Cayman Islands,,false
+KZ,KAZ,Kazakhstan,,false
+LA,LAO,Lao People's Democratic Republic,,false
+LB,LBN,Lebanon,,false
+LC,LCA,Saint Lucia,,false
+LI,LIE,Liechtenstein,,false
+LK,LKA,Sri Lanka,,false
+LR,LBR,Liberia,,false
+LS,LSO,Lesotho,,false
+LT,LTU,Lithuania,,false
+LU,LUX,Luxembourg,,false
+LV,LVA,Latvia,,false
+LY,LBY,Libya,,false
+MA,MAR,Morocco,,false
+MC,MCO,Monaco,,false
+MD,MDA,"Moldova, Republic of",,false
+ME,MNE,Montenegro,,false
+MF,MAF,Saint Martin (French part),,false
+MG,MDG,Madagascar,,false
+MH,MHL,Marshall Islands,,false
+MK,MKD,North Macedonia,,false
+ML,MLI,Mali,,false
+MM,MMR,Myanmar,,false
+MN,MNG,Mongolia,,false
+MO,MAC,Macao,,false
+MP,MNP,Northern Mariana Islands,,false
+MQ,MTQ,Martinique,,false
+MR,MRT,Mauritania,,false
+MS,MSR,Montserrat,,false
+MT,MLT,Malta,,false
+MU,MUS,Mauritius,,false
+MV,MDV,Maldives,,false
+MW,MWI,Malawi,,false
+MX,MEX,Mexico,,false
+MY,MYS,Malaysia,,false
+MZ,MOZ,Mozambique,,false
+NA,NAM,Namibia,,true
+NC,NCL,New Caledonia,,false
+NE,NER,Niger,,false
+NF,NFK,Norfolk Island,,false
+NG,NGA,Nigeria,,false
+NI,NIC,Nicaragua,,false
+NL,NLD,Netherlands,,false
+NO,NOR,Norway,,false
+NP,NPL,Nepal,,false
+NR,NRU,Nauru,,false
+NU,NIU,Niue,,false
+NZ,NZL,New Zealand,,false
+OM,OMN,Oman,,false
+PA,PAN,Panama,,false
+PE,PER,Peru,,false
+PF,PYF,French Polynesia,,false
+PG,PNG,Papua New Guinea,,false
+PH,PHL,Philippines,,false
+PK,PAK,Pakistan,,false
+PL,POL,Poland,,false
+PM,SPM,Saint Pierre and Miquelon,,false
+PN,PCN,Pitcairn,,false
+PR,PRI,Puerto Rico,,false
+PS,PSE,"Palestine, State of",,false
+PT,PRT,Portugal,,false
+PW,PLW,Palau,,false
+PY,PRY,Paraguay,,false
+QA,QAT,Qatar,,false
+RE,REU,Réunion,,false
+RO,ROU,Romania,,false
+RS,SRB,Serbia,,false
+RU,RUS,Russian Federation,,false
+RW,RWA,Rwanda,,false
+SA,SAU,Saudi Arabia,,false
+SB,SLB,Solomon Islands,,false
+SC,SYC,Seychelles,,false
+SD,SDN,Sudan,,false
+SE,SWE,Sweden,,false
+SG,SGP,Singapore,,false
+SH,SHN,"Saint Helena, Ascension and Tristan da Cunha",,false
+SI,SVN,Slovenia,,false
+SJ,SJM,Svalbard and Jan Mayen,,false
+SK,SVK,Slovakia,,false
+SL,SLE,Sierra Leone,,false
+SM,SMR,San Marino,,false
+SN,SEN,Senegal,,false
+SO,SOM,Somalia,,false
+SR,SUR,Suriname,,false
+SS,SSD,South Sudan,,false
+ST,STP,Sao Tome and Principe,,false
+SV,SLV,El Salvador,,false
+SX,SXM,Sint Maarten (Dutch part),,false
+SY,SYR,Syrian Arab Republic,,false
+SZ,SWZ,Eswatini,,false
+TC,TCA,Turks and Caicos Islands,,false
+TD,TCD,Chad,,false
+TF,ATF,French Southern Territories,,false
+TG,TGO,Togo,,false
+TH,THA,Thailand,,false
+TJ,TJK,Tajikistan,,false
+TK,TKL,Tokelau,,false
+TL,TLS,Timor-Leste,,false
+TM,TKM,Turkmenistan,,false
+TN,TUN,Tunisia,,false
+TO,TON,Tonga,,false
+TR,TUR,Turkey,,false
+TT,TTO,Trinidad and Tobago,,false
+TV,TUV,Tuvalu,,false
+TW,TWN,"Taiwan, Province of China",,false
+TZ,TZA,"Tanzania, United Republic of",,false
+UA,UKR,Ukraine,,false
+UG,UGA,Uganda,,false
+UM,UMI,United States Minor Outlying Islands,,false
+US,USA,United States,,false
+UY,URY,Uruguay,,false
+UZ,UZB,Uzbekistan,,false
+VA,VAT,Holy See (Vatican City State),,false
+VC,VCT,Saint Vincent and the Grenadines,,false
+VE,VEN,"Venezuela, Bolivarian Republic of",,false
+VG,VGB,"Virgin Islands, British",,false
+VI,VIR,"Virgin Islands, U.S.",,false
+VN,VNM,Viet Nam,,false
+VU,VUT,Vanuatu,,false
+WF,WLF,Wallis and Futuna,,false
+WS,WSM,Samoa,,false
+YE,YEM,Yemen,,false
+YT,MYT,Mayotte,,false
+ZA,ZAF,South Africa,,false
+ZM,ZMB,Zambia,,false
+ZW,ZWE,Zimbabwe,,false

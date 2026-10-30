@@ -1,0 +1,21 @@
+status_source,source_status,normalised_status,is_terminal,sort_order,description
+portal_payments,Processed,processed,true,1,Portal payment processed
+portal_payments,Rejected,rejected,true,2,Portal payment rejected
+portal_payments,ERROR,failed,true,3,Portal payment error
+portal_payments,Error,failed,true,4,Portal payment error
+portal_payments,Returned,returned,true,5,Portal payment returned
+portal_payments,New,pending,false,6,Portal payment not yet submitted
+portal_payments,PendingProcessing,pending,false,7,Portal payment still processing
+portal_payments,Reversed,reversed,true,8,Portal payment reversed
+portal_payments,B4BFailed,failed,true,9,Portal payment failed at Banking Circle
+bctn,pending,pending,false,10,Raw Banking Circle notification status
+bctn,failed,failed,true,11,Raw Banking Circle notification status
+bctn_flags,processed,processed,true,20,Incoming lifecycle from the processed flag
+bctn_flags,returned,returned,true,21,Incoming lifecycle from the returned flag
+bctn_flags,failed,failed,true,22,Incoming lifecycle from a failed notification
+bctn_flags,pending,pending,false,23,Incoming lifecycle still open
+oversight,Processed,processed,true,30,Oversight payment processed
+oversight,B4BFailed,failed,true,31,Oversight payment failed at Banking Circle
+oversight,Rejected,rejected,true,32,Oversight payment rejected
+oversight,PendingProcessing,pending,false,33,Oversight payment still processing
+oversight,Reversed,reversed,true,34,Oversight payment reversed
