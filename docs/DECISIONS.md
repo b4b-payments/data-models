@@ -1,5 +1,19 @@
 # Decisions — data-models
 
+## 2026-10-30 — Counterparty grain is the account, and the other role is unknown (final for this phase)
+
+**Decision (final for this phase):** From the council review of the same date. `dim_party` is one row per product and trimmed counterparty account for B4B and B4S, and one row per product and `beneficiary_id` for OVERSIGHT. The fact hashes that key from the payment row. A blank account hashes the single token `~unknown`. The name is a label, not part of the key.
+
+The client stays on the fact as `account_sk` and `entity_sk`. There is no party bridge. Outgoing, including an Oversight row defaulted to Outgoing, writes the external key to `creditor_party_sk` and `~unknown` to `debtor_party_sk`. Incoming does the opposite. The client is not written into either role key.
+
+The micro-batch may keep the spelling from the row that first inserts the key. The weekly refresh sets the display name to the most common non-blank spelling, and stores a client count and a name count. Those counts are not in the hash. A later spelling changes the label. The key and the amounts stay as booked. Financial institution and country are weekly attributes on the party. They are blank too often to be part of the hash. B4B institution is blank on 121,000 of 1,213,313 notifications, and country is blank on 49,864.
+
+B4B and B4S stay separate until overlap is measured. Product is in the key, so a later collapse rewrites party keys already stored on the fact. OVERSIGHT uses `beneficiary_id` until a beneficiary table is staged. Whether one `beneficiary_id` is reused across clients is unmeasured.
+
+In Cube, the external party on a fact row is the role key that is not `~unknown`. Questions about who pays a party, top counterparties, and whether two clients share a party exclude that token. A party that is a creditor on one payment and a debtor on another is the same party, so those questions read both role keys.
+
+The account used by 1,398 B4B clients and the account that carries 775 names are separate maxima. They were not shown to be the same account, and what either is remains unknown. Payment count and value on each are unmeasured, so neither is treated as dominating the book.
+
 ## 2026-10-30 — New payment keys are hashes computed on the fact (final)
 
 **Decision (final):** Each new payment surrogate key (`payment_status_sk`, `source_status_sk`, `payment_profile_sk`, `failure_reason_sk`, `payment_type_sk`, `debtor_party_sk`, `creditor_party_sk`, `debtor_country_sk`, `creditor_country_sk`) is `fnv_hash` of its natural key, calculated in `fact_payment`. The dimension uses the same expression. A null natural key hashes the token `~unknown`, and every new dimension carries that row.
@@ -24,7 +38,7 @@ Grain stays one BCTN for B4B and B4S, and one Oversight payment. Evidence and th
 
 Lifecycle status for a linked portal outgoing payment is `payments.status`, not BCTN `status`. BCTN `status` is only `pending` or `failed` and stays on the fact as the raw operational status until the status dimension exists. The outgoing status clock is `payments.updated_at`. Portal `transaction_date` is a date, so `event_ts` stays the booking date at midnight until charts move.
 
-One external party per payment. Debtor and creditor are role keys, not a bridge. The client side remains `account_sk`. CLE country is not the payment country.
+One external party per payment. The accepted party grain is the 30 Oct 2026 council decision above. Debtor and creditor are role keys, not a bridge. The client side remains `account_sk`. CLE country is not the payment country.
 
 `fee_amount` is out until a payment fee source exists. `fact_exchange_rate` is for reporting conversion only, and it needs a refresh: the current 513,378 rows were loaded on 5 Aug 2026.
 
