@@ -1,5 +1,9 @@
 # Decisions — data-models
 
+## 2026-10-30 — An incremental run drops a fact row whose source key is gone
+
+**Decision:** Before `delete+insert`, an incremental `fact_payment` run deletes a row when its changed Oversight payment id or Banking Circle notification id is in `pipeline_changed_key` for this `pipeline_run_id` and is no longer in staging. A key that is still in staging is updated by the existing select. A full refresh does not use this delete.
+
 ## 2026-10-29 — fact_payment incremental keys (final for the micro-batch)
 
 **Decision:** `fact_payment` is incremental with `unique_key` `(source_system, source_payment_id)` and `delete+insert`. `payment_sk` is `fnv_hash(source_system || '|' || source_payment_id)`, so a rebuild does not renumber the fact. An incremental run reads only the Banking Circle notification ids and Oversight payment ids in `spike.pipeline_changed_key` for `pipeline_run_id`. A full refresh ignores that filter. The full `payment_sk` uniqueness test is tagged `weekly_reconcile` and is not part of the micro-batch test selection.

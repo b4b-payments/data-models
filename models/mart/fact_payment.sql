@@ -6,13 +6,15 @@
     unique_key=['source_system', 'source_payment_id'],
     on_schema_change='append_new_columns',
     dist='entity_sk',
-    sort=['date_sk', 'source_system']
+    sort=['date_sk', 'source_system'],
+    pre_hook=["{{ delete_missing_fact_payments() }}"]
 ) }}
 
 -- Grain: one portal payment notification (B4B or B4S), or one Oversight payment.
 -- Incoming and outgoing. Deposit is only the incoming leg.
 -- Portal account: COALESCE(payments.company_id, deposits.company_id, viban→company_id)
 -- on the same portal, then dim_account / entity_sk via that company.
+-- An incremental run first deletes a changed key that is no longer in staging.
 
 with
 {% if is_incremental() %}
