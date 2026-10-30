@@ -6,7 +6,7 @@
 
 Yahoo pairs are USD-crossed (DKK_USD, USD_EUR, …), not direct DKK_EUR. Convert with identity / direct `from→reporting` / else `from→USD * USD→reporting`, as-of booking date.
 
-**Interim:** `v_fact_payment_amount_eur` payment-grain table proved the path (EUR only; ~5 min rebuild). **Next:** replace with a GBP/EUR/USD as-of **rate spine** and Cube `sum(amount * rate)` — see data-engineering `docs/31_fx_reporting_pickup.md`.
+**Shape (updated):** Keep `fact_payment`. Add a **slim materialized reporting fact** (`payment_sk` + `amount_gbp` / `amount_eur` / `amount_usd`) to conjoin 1:1; rebuild when FX arrives late. Interim `v_fact_payment_amount_eur` proved as-of via_usd (EUR only). Pickup: data-engineering `docs/31_fx_reporting_pickup.md`.
 
 Staging keeps up with the PassFort sync cron via watermark merge (`run_fx_incremental.sh`); dbt incremental uses `source_updated_at` plus a 3-day `rate_date` lookback.
 
