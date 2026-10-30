@@ -229,9 +229,17 @@ cubes:
 
   - name: value_dates
     extends: dates
+    dimensions:
+      - name: value_date
+        sql: calendar_date
+        type: time
 
   - name: status_updated_dates
     extends: dates
+    dimensions:
+      - name: status_updated_date
+        sql: calendar_date
+        type: time
 
   - name: parties
     sql_table: spike.dim_party
@@ -455,12 +463,18 @@ cubes:
       - name: payment_status
         sql: payment_status
         type: string
+        description: Raw Banking Circle or Oversight status. Portal rows are pending or failed.
       - name: payment_direction
         sql: payment_direction
         type: string
       - name: event_ts
         sql: event_ts
         type: time
+        description: Booking date. Portal values are midnight.
+      - name: status_updated_at
+        sql: status_updated_at
+        type: time
+        description: When the lifecycle status last changed. Null on incoming portal payments.
       - name: sca_applied
         sql: sca_applied
         type: boolean
