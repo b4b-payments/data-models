@@ -1,5 +1,19 @@
 # Decisions — data-models
 
+## 2026-10-30 — Payment fact stays thin (proposed, not final)
+
+**Status:** open. Do not change `fact_payment` until this is accepted.
+
+**Proposal:** `fact_payment` keeps surrogate keys, `source_system`, `source_payment_id`, additive amounts, and `loaded_at` / `batch_run_id`. Status labels, direction, SCA, names, account numbers, country names, and reason text move to dimensions. Rates and ratios are calculated in Cube.
+
+Grain stays one BCTN for B4B and B4S, and one Oversight payment. Evidence and the column list are in data-engineering [30_payment_fact_gap_analysis.md](../../data-engineering/docs/30_payment_fact_gap_analysis.md).
+
+Lifecycle status for a linked portal outgoing payment is `payments.status`, not BCTN `status`. BCTN `status` is only `pending` or `failed` and stays on the fact as the raw operational status until the status dimension exists. The outgoing status clock is `payments.updated_at`. Portal `transaction_date` is a date, so `event_ts` stays the booking date at midnight until charts move.
+
+One external party per payment. Debtor and creditor are role keys, not a bridge. The client side remains `account_sk`. CLE country is not the payment country.
+
+`fee_amount` is out until a payment fee source exists. `fact_exchange_rate` is for reporting conversion only, and it needs a refresh: the current 513,378 rows were loaded on 5 Aug 2026.
+
 ## 2026-10-30 — An incremental run drops a fact row whose source key is gone
 
 **Decision:** Before `delete+insert`, an incremental `fact_payment` run deletes a row when its changed Oversight payment id or Banking Circle notification id is in `pipeline_changed_key` for this `pipeline_run_id` and is no longer in staging. A key that is still in staging is updated by the existing select. A full refresh does not use this delete.
