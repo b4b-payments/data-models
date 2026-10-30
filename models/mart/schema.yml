@@ -337,3 +337,48 @@ models:
           - accepted_values:
               arguments:
                 values: ['observed_ehi', 'confirmed_gps', 'unmatched', 'reversed', 'chargeback']
+
+  - name: fact_exchange_rate_daily
+    description: >
+      Yahoo mid rate per calendar day, from/to currency, and vendor.
+      PassFort fx_daily_rates via stg_passfort_fx_daily_rates. Reporting conversion only.
+      Not stored on fact_payment — FX arrives late relative to payments.
+    columns:
+      - name: fx_rate_daily_sk
+        description: Stable FNV hash of from, to, date_sk, vendor.
+        data_tests: [not_null]
+      - name: date_sk
+        data_tests: [not_null]
+      - name: from_currency_sk
+        data_tests: [not_null]
+      - name: to_currency_sk
+        data_tests: [not_null]
+      - name: vendor
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['yahoo']
+      - name: rate
+        data_tests: [not_null]
+      - name: source_updated_at
+        description: PassFort fx_daily_rates.updated_at; incremental watermark.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [from_currency_sk, to_currency_sk, date_sk, vendor]
+          config:
+            tags: ['weekly_reconcile']
+
+  - name: v_fact_payment_amount_eur
+    description: >
+      Payment amounts converted to EUR with as-of Yahoo rates (latest on or before booking date).
+      Yahoo is USD-crossed: uses direct *→EUR when present, else from→USD * USD→EUR.
+      View only — never bake amount_eur onto fact_payment (late FX).
+    columns:
+      - name: payment_sk
+        data_tests: [not_null]
+      - name: amount_eur
+        description: amount_source * as-of EUR path; null when unmatched.
+      - name: fx_path
+        description: identity | direct | via_usd | unmatched

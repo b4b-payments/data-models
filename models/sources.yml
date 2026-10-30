@@ -67,6 +67,10 @@ sources:
       - name: stg_gps_visa_card_financial
       - name: stg_gps_visa_card_fee
       - name: stg_gps_visa_card_load_unload
+      - name: stg_passfort_fx_instruments
+        description: Yahoo FX instrument catalogue from PassFort (sync-fx-rates).
+      - name: stg_passfort_fx_daily_rates
+        description: Yahoo day mid rates from PassFort (sync-fx-rates). Grain (pair, rate_date).
 
   - name: spike_ops
     description: Pipeline control tables written by the payments CDC runner.

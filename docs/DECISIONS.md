@@ -1,5 +1,15 @@
 # Decisions — data-models
 
+## 2026-10-30 — EUR payment volume is a view over as-of Yahoo FX (final)
+
+**Decision (final):** Do not store `amount_eur` on `fact_payment` — FX is late-arriving. Publish `fact_exchange_rate_daily` (incremental, grain `from_currency_sk`, `to_currency_sk`, `date_sk`, `vendor`) from `stg_passfort_fx_daily_rates`.
+
+Yahoo pairs are USD-crossed (DKK_USD, USD_EUR, …), not direct DKK_EUR. Convert with identity / direct `from→reporting` / else `from→USD * USD→reporting`, as-of booking date.
+
+**Interim:** `v_fact_payment_amount_eur` payment-grain table proved the path (EUR only; ~5 min rebuild). **Next:** replace with a GBP/EUR/USD as-of **rate spine** and Cube `sum(amount * rate)` — see data-engineering `docs/31_fx_reporting_pickup.md`.
+
+Staging keeps up with the PassFort sync cron via watermark merge (`run_fx_incremental.sh`); dbt incremental uses `source_updated_at` plus a 3-day `rate_date` lookback.
+
 ## 2026-10-30 — Counterparty grain is the account, and the other role is unknown (final for this phase)
 
 **Decision (final for this phase):** From the council review of the same date. `dim_party` is one row per product and trimmed counterparty account for B4B and B4S, and one row per product and `beneficiary_id` for OVERSIGHT. The fact hashes that key from the payment row. A blank account hashes the single token `~unknown`. The name is a label, not part of the key.
