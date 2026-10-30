@@ -1,5 +1,19 @@
 # Decisions — data-models
 
+## 2026-10-30 — New payment keys are hashes computed on the fact (final)
+
+**Decision (final):** Each new payment surrogate key (`payment_status_sk`, `source_status_sk`, `payment_profile_sk`, `failure_reason_sk`, `payment_type_sk`, `debtor_party_sk`, `creditor_party_sk`, `debtor_country_sk`, `creditor_country_sk`) is `fnv_hash` of its natural key, calculated in `fact_payment`. The dimension uses the same expression. A null natural key hashes the token `~unknown`, and every new dimension carries that row.
+
+The fact does not join a dimension to obtain the key. The dimension and the fact can build in either order, an incremental tick does not wait on a dimension refresh, and a rebuild does not renumber a key. `payment_sk` already works this way.
+
+Schema work still waits on the open thin-fact gates in data-engineering `tasks/todo.md`.
+
+## 2026-10-30 — Counterparty name is visible in Cube for now (final for this phase)
+
+**Decision (final for this phase):** `dim_party` name, financial institution, and country go into the Cube payments model. Every person who can open B4B BI can see them. The account number stays off Cube; `dim_party` stores a hash of it.
+
+Restrictions wait until the BI rollout. Cube has one SQL password and no per-user rules today, so there is no second role to attach the name to.
+
 ## 2026-10-30 — Payment fact stays thin (proposed, not final)
 
 **Status:** open. Do not change `fact_payment` until this is accepted.
