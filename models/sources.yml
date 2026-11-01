@@ -11,6 +11,8 @@ sources:
         description: Client legal entities. This is the PSU grain.
       - name: stg_b4b_companies
         description: Portal companies. Each row is a currency account.
+      - name: stg_b4b_enterprises
+        description: Portal enterprises (Partner). Warehouse GID augment source.
       - name: stg_b4b_institutions
         description: Institutions (Intermediate)
       - name: stg_b4b_banking_circle_transaction_notifications
@@ -25,6 +27,8 @@ sources:
         description: Bread for Scrap client legal entities. PSU grain for that portal.
       - name: stg_b4s_companies
         description: Bread for Scrap companies. Each row is a currency account.
+      - name: stg_b4s_enterprises
+        description: Bread for Scrap enterprises (Partner).
       - name: stg_b4s_institutions
         description: Bread for Scrap institutions (Intermediate)
       - name: stg_b4s_banking_circle_transaction_notifications
@@ -71,6 +75,20 @@ sources:
         description: Yahoo FX instrument catalogue from PassFort (sync-fx-rates).
       - name: stg_passfort_fx_daily_rates
         description: Yahoo day mid rates from PassFort (sync-fx-rates). Grain (pair, rate_date).
+      - name: stg_geonames_country
+        description: GeoNames countryInfo dump (file pipeline). Grain iso2.
+      - name: stg_compliance_country_risk
+        description: Compliance Master Sheet v3 ISO countries (demo file load). Grain iso_code alpha2.
+      - name: stg_compliance_country_jurisdiction
+        description: Compliance Master Sheet non-ISO / subdivision codes (XK, UA-*, PT-*).
+      - name: stg_vessel_hull_coverage
+        description: >
+          Vessel book hull grain from Grid coverage 2026-10-15 (file load).
+          psu_or_subaccount + CLE gid; not a live DMS feed.
+      - name: stg_vessel_float_coverage
+        description: >
+          Exploded float/company rows from the same coverage (company_id, float_type,
+          jurisdiction, open/closed). Vessel-only.
 
   - name: spike_ops
     description: Pipeline control tables written by the payments CDC runner.

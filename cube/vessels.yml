@@ -1,0 +1,81 @@
+cubes:
+  - name: vessels
+    sql_table: spike.dim_vessel
+    description: >
+      Yacht hull book (Grid coverage prototype). Subaccount/asset under CLE.
+      cle_gid is the money-holder CLE GID when present.
+
+    dimensions:
+      - name: vessel_sk
+        sql: vessel_sk
+        type: number
+        primary_key: true
+      - name: hull_key
+        sql: hull_key
+        type: string
+      - name: hull_name
+        sql: hull_name
+        type: string
+      - name: institution_name
+        sql: institution_name
+        type: string
+      - name: psu_or_subaccount
+        sql: psu_or_subaccount
+        type: string
+      - name: cle_gid
+        sql: cle_gid
+        type: string
+      - name: account_mix
+        sql: account_mix
+        type: string
+      - name: has_open_float
+        sql: has_open_float
+        type: boolean
+      - name: grid_ongoing
+        sql: grid_ongoing
+        type: boolean
+
+    measures:
+      - name: count
+        type: count
+
+  - name: account_vessels
+    sql_table: spike.dim_account_vessel
+    description: >
+      Yachting float outrigger on accounts. float_type operational|apa|project.
+
+    joins:
+      - name: accounts
+        sql: "{CUBE}.account_sk = {accounts.account_sk}"
+        relationship: many_to_one
+      - name: vessels
+        sql: "{CUBE}.vessel_sk = {vessels.vessel_sk}"
+        relationship: many_to_one
+
+    dimensions:
+      - name: account_sk
+        sql: account_sk
+        type: number
+        primary_key: true
+      - name: float_type
+        sql: float_type
+        type: string
+      - name: float_status
+        sql: float_status
+        type: string
+      - name: jurisdiction
+        sql: jurisdiction
+        type: string
+      - name: hull_name
+        sql: hull_name
+        type: string
+      - name: psu_or_subaccount
+        sql: psu_or_subaccount
+        type: string
+      - name: cle_gid
+        sql: cle_gid
+        type: string
+
+    measures:
+      - name: count
+        type: count

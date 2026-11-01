@@ -1,12 +1,16 @@
 # Decisions — data-models
 
+## 2026-10-30 — dim_country outriggers risk + geo + jurisdiction (demo final)
+
+Thin ISO `dim_country`. Type-1 `dim_country_risk` (Compliance Master Sheet v3), `dim_country_geo` (GeoNames countryInfo), `dim_jurisdiction` (XK / UA-* / PT-*). File pipeline via data-engineering `run_country_ref_load.sh`. No risk SK on `fact_payment`. Industry feeds later.
+
 ## 2026-10-30 — EUR payment volume is a view over as-of Yahoo FX (final)
 
 **Decision (final):** Do not store `amount_eur` on `fact_payment` — FX is late-arriving. Publish `fact_exchange_rate_daily` (incremental, grain `from_currency_sk`, `to_currency_sk`, `date_sk`, `vendor`) from `stg_passfort_fx_daily_rates`.
 
 Yahoo pairs are USD-crossed (DKK_USD, USD_EUR, …), not direct DKK_EUR. Convert with identity / direct `from→reporting` / else `from→USD * USD→reporting`, as-of booking date.
 
-**Shape (updated):** Keep `fact_payment`. Add a **slim materialized reporting fact** (`payment_sk` + `amount_gbp` / `amount_eur` / `amount_usd`) to conjoin 1:1; rebuild when FX arrives late. Interim `v_fact_payment_amount_eur` proved as-of via_usd (EUR only). Pickup: data-engineering `docs/31_fx_reporting_pickup.md`.
+**Locked (can change later):** Keep `fact_payment`. Slim **materialized** `fact_payment_reporting` — one row per `payment_sk` with `amount_gbp` / `amount_eur` / `amount_usd`; rebuild on FX cron; Cube/Superset conjoin 1:1. Interim `v_fact_payment_amount_eur` proved as-of via_usd. Pickup: data-engineering `docs/31_fx_reporting_pickup.md`.
 
 Staging keeps up with the PassFort sync cron via watermark merge (`run_fx_incremental.sh`); dbt incremental uses `source_updated_at` plus a 3-day `rate_date` lookback.
 

@@ -34,3 +34,8 @@ data_tests:
 sources:
   b4b_models:
     +static_analysis: strict
+
+seeds:
+  b4b_models:
+    +schema: spike
+    +quote_columns: false

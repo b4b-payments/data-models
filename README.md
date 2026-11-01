@@ -14,7 +14,7 @@ A portal company is a currency account. The legal entity is the client legal ent
 | `fact_payment` | One portal payment notification (B4B or Bread for Scrap), or one Oversight payment. Incoming and outgoing |
 | `dim_date` | One calendar day. `id` is days since 2000-01-01, plus 1 |
 | `dim_currency` | One currency. `id` is a stable integer ordered by ISO code |
-| `dim_payment_rail` | One rail code (`F###`) |
+| `dim_payment_rail` | One rail code (`F###`); `payment_rail` = BC scheme name for grouping |
 | `dim_card` | One portal card on B4B or Bread for Scrap. No PAN |
 | `dim_cardholder` | One portal cardholder |
 | `dim_card_product` | One portal card product |

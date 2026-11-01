@@ -1,7 +1,10 @@
 cubes:
   - name: payment_rails
-    sql_table: spike.dim_payment_rail
-    description: Payment rail catalogue. fact.rail_sk joins to id.
+    # Prefer spike.dim_payment_rail after admin rebuild; build table until then.
+    sql_table: spike.dim_payment_rail_build
+    description: >
+      Payment rail catalogue (F### grain). fact.rail_sk joins to id.
+      payment_rail is the BC scheme name for grouping (historic F-code bridge).
 
     dimensions:
       - name: id
@@ -14,9 +17,21 @@ cubes:
       - name: rail_name
         sql: rail_name
         type: string
+        description: Long portal routing description
+      - name: payment_rail
+        sql: payment_rail
+        type: string
+        title: Payment rail
+        description: BC scheme name (Faster Payments, SEPA (SCT), Local Clearing, …)
       - name: scheme_family
         sql: scheme_family
         type: string
+        description: Same as payment_rail (compat)
+      - name: reason
+        sql: reason
+        type: string
+        title: Rail direction
+        description: Incoming or Outgoing from BC catalogue / portal description
       - name: source_system
         sql: source_system
         type: string
@@ -188,8 +203,74 @@ cubes:
       - name: count
         type: count
 
+  - name: country_geo
+    sql_table: spike.dim_country_geo
+    description: GeoNames Type-1 outrigger on dim_country.
+
+    dimensions:
+      - name: country_sk
+        sql: country_sk
+        type: number
+        primary_key: true
+      - name: continent_code
+        sql: continent_code
+        type: string
+      - name: continent_name
+        sql: continent_name
+        type: string
+      - name: capital
+        sql: capital
+        type: string
+      - name: population
+        sql: population
+        type: number
+      - name: area_km2
+        sql: area_km2
+        type: number
+
+    measures:
+      - name: count
+        type: count
+
+  - name: country_risk
+    sql_table: spike.dim_country_risk
+    description: Compliance Type-1 country risk outrigger (as-of-now).
+
+    dimensions:
+      - name: country_sk
+        sql: country_sk
+        type: number
+        primary_key: true
+      - name: final_rating
+        sql: final_rating
+        type: string
+      - name: final_rating_rank
+        sql: final_rating_rank
+        type: number
+      - name: previous_rating_v2
+        sql: previous_rating_v2
+        type: string
+      - name: previous_rating_v1
+        sql: previous_rating_v1
+        type: string
+      - name: mlro_note
+        sql: mlro_note
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
   - name: countries
     sql_table: spike.dim_country
+
+    joins:
+      - name: country_geo
+        sql: "{CUBE}.country_sk = {country_geo.country_sk}"
+        relationship: one_to_one
+      - name: country_risk
+        sql: "{CUBE}.country_sk = {country_risk.country_sk}"
+        relationship: one_to_one
 
     dimensions:
       - name: country_sk
@@ -208,6 +289,18 @@ cubes:
       - name: region
         sql: region
         type: string
+      - name: continent_name
+        sql: "{country_geo.continent_name}"
+        type: string
+      - name: population
+        sql: "{country_geo.population}"
+        type: number
+      - name: final_rating
+        sql: "{country_risk.final_rating}"
+        type: string
+      - name: final_rating_rank
+        sql: "{country_risk.final_rating_rank}"
+        type: number
 
     measures:
       - name: count
@@ -219,12 +312,24 @@ cubes:
       - name: debtor_code
         sql: alpha2
         type: string
+      - name: debtor_final_rating
+        sql: "{country_risk.final_rating}"
+        type: string
+      - name: debtor_continent_name
+        sql: "{country_geo.continent_name}"
+        type: string
 
   - name: creditor_countries
     extends: countries
     dimensions:
       - name: creditor_code
         sql: alpha2
+        type: string
+      - name: creditor_final_rating
+        sql: "{country_risk.final_rating}"
+        type: string
+      - name: creditor_continent_name
+        sql: "{country_geo.continent_name}"
         type: string
 
   - name: value_dates
@@ -282,9 +387,52 @@ cubes:
   - name: external_parties
     extends: parties
 
+  - name: entity_channels
+    sql_table: spike.dim_entity_channel
+    description: CLE partner-channel outrigger. Multi-CLE institution = Partner channel.
+
+    dimensions:
+      - name: entity_sk
+        sql: entity_sk
+        type: number
+        primary_key: true
+      - name: cle_id
+        sql: cle_id
+        type: string
+      - name: cle_name
+        sql: cle_name
+        type: string
+      - name: primary_institution_name
+        sql: primary_institution_name
+        type: string
+      - name: primary_institution_code
+        sql: primary_institution_code
+        type: string
+      - name: partner_name
+        sql: partner_name
+        type: string
+      - name: institution_cle_count
+        sql: institution_cle_count
+        type: number
+      - name: is_partner_channel
+        sql: is_partner_channel
+        type: boolean
+      - name: channel_type
+        sql: channel_type
+        type: string
+
+    measures:
+      - name: count
+        type: count
+
   - name: entities
     sql_table: spike.dim_entity
     description: Legal entity. PSU grain is the client legal entity. fact.entity_sk joins here.
+
+    joins:
+      - name: entity_channels
+        sql: "{CUBE}.entity_sk = {entity_channels.entity_sk}"
+        relationship: one_to_one
 
     dimensions:
       - name: entity_sk
@@ -326,6 +474,21 @@ cubes:
         type: string
       - name: gid_sk
         sql: gid_sk
+        type: number
+      - name: channel_type
+        sql: "{entity_channels.channel_type}"
+        type: string
+      - name: is_partner_channel
+        sql: "{entity_channels.is_partner_channel}"
+        type: boolean
+      - name: primary_institution_name
+        sql: "{entity_channels.primary_institution_name}"
+        type: string
+      - name: partner_name
+        sql: "{entity_channels.partner_name}"
+        type: string
+      - name: institution_cle_count
+        sql: "{entity_channels.institution_cle_count}"
         type: number
 
     measures:
@@ -372,11 +535,58 @@ cubes:
       - name: count
         type: count
 
+  - name: payment_reporting
+    sql_table: spike.fact_payment_reporting
+    description: >
+      Slim FX reporting fact. amount_gbp/eur/usd from as-of Yahoo rates.
+      Join 1:1 to payments on payment_sk. Rebuilt when FX ticks.
+
+    dimensions:
+      - name: payment_sk
+        sql: payment_sk
+        type: number
+        primary_key: true
+      - name: amount_gbp
+        sql: amount_gbp
+        type: number
+      - name: amount_eur
+        sql: amount_eur
+        type: number
+      - name: amount_usd
+        sql: amount_usd
+        type: number
+      - name: fx_matched_gbp
+        sql: fx_matched_gbp
+        type: boolean
+      - name: fx_matched_eur
+        sql: fx_matched_eur
+        type: boolean
+      - name: fx_matched_usd
+        sql: fx_matched_usd
+        type: boolean
+
+    measures:
+      - name: amount_in_gbp
+        sql: amount_gbp
+        type: sum
+        description: Payment volume converted to GBP (as-of Yahoo).
+      - name: amount_in_eur
+        sql: amount_eur
+        type: sum
+        description: Payment volume converted to EUR (as-of Yahoo).
+      - name: amount_in_usd
+        sql: amount_usd
+        type: sum
+        description: Payment volume converted to USD (as-of Yahoo).
+
   - name: payments
     sql_table: spike.fact_payment
     description: Payment fact. entity_sk is the legal entity. account_sk is the currency account.
 
     joins:
+      - name: payment_reporting
+        sql: "{CUBE}.payment_sk = {payment_reporting.payment_sk}"
+        relationship: one_to_one
       - name: entities
         sql: "{CUBE}.entity_sk = {entities.entity_sk}"
         relationship: many_to_one
@@ -521,6 +731,18 @@ cubes:
         description: Native amount where currency is USD only
         filters:
           - sql: "{currencies.currency_code} = 'USD'"
+      - name: amount_in_gbp
+        sql: "{payment_reporting.amount_gbp}"
+        type: sum
+        description: Converted GBP volume via fact_payment_reporting (as-of Yahoo).
+      - name: amount_in_eur
+        sql: "{payment_reporting.amount_eur}"
+        type: sum
+        description: Converted EUR volume via fact_payment_reporting (as-of Yahoo).
+      - name: amount_in_usd
+        sql: "{payment_reporting.amount_usd}"
+        type: sum
+        description: Converted USD volume via fact_payment_reporting (as-of Yahoo).
       - name: with_account_count
         type: count
         filters:

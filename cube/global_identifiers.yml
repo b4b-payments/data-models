@@ -1,0 +1,78 @@
+cubes:
+  - name: global_identifiers
+    sql_table: spike.dim_gid
+    description: >
+      GID spine from svc_orchestrator.global_identifiers.
+      Warehouse overlay adds gid_type (Partner | PSU | Subaccount) — orchestrator has parent_id but no type.
+      Vessel float kinds (operational | apa | project_refit) are on the account, not on GID.
+
+    dimensions:
+      - name: gid_sk
+        sql: gid_sk
+        type: number
+        primary_key: true
+
+      - name: gid
+        sql: gid
+        type: string
+
+      - name: parent_gid_sk
+        sql: parent_gid_sk
+        type: number
+
+      - name: parent_orchestrator_id
+        sql: parent_orchestrator_id
+        type: string
+
+      - name: gid_type
+        sql: gid_type
+        type: string
+        description: Partner | PSU | Subaccount. Null if unclassified.
+
+      - name: zoho_account_id
+        sql: zoho_account_id
+        type: string
+
+      - name: passfort_profile_id
+        sql: passfort_profile_id
+        type: string
+
+      - name: b4b_cle_id
+        sql: b4b_cle_id
+        type: string
+
+      - name: b4s_cle_id
+        sql: b4s_cle_id
+        type: string
+
+      - name: risk_level
+        sql: risk_level
+        type: string
+
+      - name: loaded_at
+        sql: loaded_at
+        type: time
+
+    measures:
+      - name: count
+        type: count
+
+      - name: with_parent_count
+        type: count
+        filters:
+          - sql: "{CUBE}.parent_gid_sk IS NOT NULL"
+
+      - name: partner_count
+        type: count
+        filters:
+          - sql: "{CUBE}.gid_type = 'Partner'"
+
+      - name: psu_count
+        type: count
+        filters:
+          - sql: "{CUBE}.gid_type = 'PSU'"
+
+      - name: subaccount_count
+        type: count
+        filters:
+          - sql: "{CUBE}.gid_type = 'Subaccount'"

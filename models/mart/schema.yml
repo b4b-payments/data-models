@@ -1,8 +1,39 @@
 version: 2
 
 models:
+  - name: dim_vessel
+    description: >
+      One hull (vessel asset) from Grid coverage book. Prototype production
+      Subaccount/asset under CLE. cle_gid is money-holder CLE GID when present.
+    columns:
+      - name: vessel_sk
+        data_tests: [unique, not_null]
+      - name: hull_key
+        data_tests: [not_null]
+      - name: psu_or_subaccount
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['psu', 'subaccount', 'mixed']
+
+  - name: dim_account_vessel
+    description: >
+      Yachting float outrigger on dim_account. float_type operational|apa|project
+      (refit not split in 2026-10-15 export). Null for non-vessel accounts (absent).
+    columns:
+      - name: account_sk
+        data_tests: [unique, not_null]
+      - name: float_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['operational', 'apa', 'project']
+
   - name: dim_gid
-    description: One row per global identifier. Identifiers are not invented.
+    description: >
+      One row per global identifier. Identifiers are not invented.
+      Warehouse overlay adds gid_type (orchestrator has parent_id but no type):
+      Partner | PSU | Subaccount (asset under a CLE).
     columns:
       - name: gid_sk
         description: Integer primary key
@@ -10,6 +41,16 @@ models:
       - name: gid
         description: Natural key
         data_tests: [unique, not_null]
+      - name: parent_gid_sk
+        description: Parent GID in the orchestrator hierarchy (resolved from parent_id)
+      - name: gid_type
+        description: Partner | PSU | Subaccount. Null when unclassified (root, no CLE, no children).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Partner', 'PSU', 'Subaccount']
+              config:
+                where: "gid_type is not null"
 
   - name: dim_entity
     description: One organisational entity. PSU grain is the client legal entity on B4B or Bread for Scrap. Agent and Intermediate are included. Reporting product is B4B | B4S | OVERSIGHT (column `platform` today; prefer name `product` in BI).
@@ -21,7 +62,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['Agent', 'Intermediate', 'PSU', 'TSP']
+                values: ['Agent', 'Intermediate', 'PSU', 'TSP', 'Partner']
       - name: platform
         description: Product codes B4B | B4S | OVERSIGHT (reporting name is product; rename planned)
       - name: source_system
@@ -217,6 +258,64 @@ models:
       - name: alpha2
         data_tests: [unique, not_null]
 
+  - name: dim_risk_rating
+    description: Ordered B4B financial-crime country risk labels.
+    columns:
+      - name: rating_code
+        data_tests: [unique, not_null]
+      - name: rating_rank
+        data_tests: [unique, not_null]
+
+  - name: dim_country_geo
+    description: Type-1 GeoNames outrigger on dim_country (continent, population, capital, …).
+    columns:
+      - name: country_sk
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_country')
+                field: country_sk
+
+  - name: dim_country_risk
+    description: Type-1 Compliance country risk outrigger (demo Master Sheet v3). As-of-now only.
+    columns:
+      - name: country_sk
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_country')
+                field: country_sk
+      - name: final_rating
+        data_tests: [not_null]
+
+  - name: dim_jurisdiction
+    description: Non-ISO jurisdictions from Compliance sheet (XK, occupied UA, PT islands).
+    columns:
+      - name: jurisdiction_sk
+        data_tests: [unique, not_null]
+      - name: jurisdiction_code
+        data_tests: [unique, not_null]
+
+  - name: dim_entity_channel
+    description: >
+      CLE outrigger for Partners BI. Primary institution plus partner-channel flag
+      when that institution hosts more than one CLE.
+    columns:
+      - name: entity_sk
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_entity')
+                field: entity_sk
+      - name: is_partner_channel
+        data_tests: [not_null]
+
   - name: dim_party
     columns:
       - name: party_sk
@@ -370,15 +469,19 @@ models:
           config:
             tags: ['weekly_reconcile']
 
-  - name: v_fact_payment_amount_eur
+  - name: fact_payment_reporting
     description: >
-      Payment amounts converted to EUR with as-of Yahoo rates (latest on or before booking date).
-      Yahoo is USD-crossed: uses direct *→EUR when present, else from→USD * USD→EUR.
-      View only — never bake amount_eur onto fact_payment (late FX).
+      Slim materialized reporting fact. One row per payment_sk with amount_gbp/eur/usd
+      from as-of Yahoo FX. Rebuild on FX cron; never bake these onto fact_payment.
+    columns:
+      - name: payment_sk
+        data_tests: [unique, not_null]
+      - name: amount_gbp
+      - name: amount_eur
+      - name: amount_usd
+
+  - name: v_fact_payment_amount_eur
+    description: Interim EUR-only spike. Prefer fact_payment_reporting.
     columns:
       - name: payment_sk
         data_tests: [not_null]
-      - name: amount_eur
-        description: amount_source * as-of EUR path; null when unmatched.
-      - name: fx_path
-        description: identity | direct | via_usd | unmatched

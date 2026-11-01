@@ -4,11 +4,12 @@
 ) }}
 
 -- Grain: one organisational entity (Type-1).
--- PSU = CLE (not portal company). Agent / Intermediate included.
+-- PSU = CLE (not portal company). Agent / Intermediate / Partner included.
+-- Partner = PCS enterprises + reviewed institution overlay (seed partner_overlay).
 -- B4B and B4S are separate portals. The same CLE id can exist on both.
 -- PK: entity_sk. Optional gid_sk → dim_gid.
+-- Partner SKs use a 1_000_000 offset so existing CLE/institution SKs stay stable.
 
--- CLE staging columns (both portals): id, name, gid, tm_incorporation_country.
 with cle as (
     select
         'PSU' as entity_type,
@@ -64,6 +65,58 @@ agents as (
     from {{ source('spike_stg', 'stg_oversight_clients') }} c
 ),
 
+partners as (
+    select
+        'Partner' as entity_type,
+        coalesce(e.description, e.code, cast(e.id as varchar)) as entity_name,
+        cast(null as varchar) as entity_status,
+        'portal_b4b' as source_system,
+        cast(e.id as varchar) as source_pk,
+        cast(null as varchar) as b4b_cle_id,
+        cast(null as varchar) as b4s_cle_id,
+        cast(null as varchar) as gid,
+        cast(null as varchar) as legal_entity_country,
+        cast(null as varchar) as parent_source_pk,
+        cast(null as varchar) as parent_source_system,
+        'B4B' as platform
+    from {{ source('spike_stg', 'stg_b4b_enterprises') }} e
+
+    union all
+
+    select
+        'Partner' as entity_type,
+        coalesce(e.description, e.code, cast(e.id as varchar)) as entity_name,
+        cast(null as varchar) as entity_status,
+        'portal_b4s' as source_system,
+        cast(e.id as varchar) as source_pk,
+        cast(null as varchar) as b4b_cle_id,
+        cast(null as varchar) as b4s_cle_id,
+        cast(null as varchar) as gid,
+        cast(null as varchar) as legal_entity_country,
+        cast(null as varchar) as parent_source_pk,
+        cast(null as varchar) as parent_source_system,
+        'B4S' as platform
+    from {{ source('spike_stg', 'stg_b4s_enterprises') }} e
+
+    union all
+
+    -- Reviewed institution partners with no enterprises row (e.g. ICP → G-15679)
+    select
+        'Partner' as entity_type,
+        o.partner_name as entity_name,
+        cast(null as varchar) as entity_status,
+        o.link_source_system as source_system,
+        o.partner_key as source_pk,
+        cast(null as varchar) as b4b_cle_id,
+        cast(null as varchar) as b4s_cle_id,
+        nullif(trim(o.gid), '') as gid,
+        cast(null as varchar) as legal_entity_country,
+        cast(null as varchar) as parent_source_pk,
+        cast(null as varchar) as parent_source_system,
+        o.product as platform
+    from {{ ref('partner_overlay') }} o
+),
+
 intermediates as (
     select
         'Intermediate' as entity_type,
@@ -75,10 +128,17 @@ intermediates as (
         cast(null as varchar) as b4s_cle_id,
         cast(null as varchar) as gid,
         cast(null as varchar) as legal_entity_country,
-        cast(null as varchar) as parent_source_pk,
-        cast(null as varchar) as parent_source_system,
+        coalesce(cast(i.enterprise_id as varchar), o.partner_key) as parent_source_pk,
+        case
+            when i.enterprise_id is not null then 'portal_b4b'
+            when o.partner_key is not null then o.link_source_system
+        end as parent_source_system,
         'B4B' as platform
     from {{ source('spike_stg', 'stg_b4b_institutions') }} i
+    left join {{ ref('partner_overlay') }} o
+        on o.product = 'B4B'
+       and o.link_kind = 'institution'
+       and o.link_pk = cast(i.id as varchar)
 
     union all
 
@@ -92,13 +152,20 @@ intermediates as (
         cast(null as varchar) as b4s_cle_id,
         cast(null as varchar) as gid,
         cast(null as varchar) as legal_entity_country,
-        cast(null as varchar) as parent_source_pk,
-        cast(null as varchar) as parent_source_system,
+        coalesce(cast(i.enterprise_id as varchar), o.partner_key) as parent_source_pk,
+        case
+            when i.enterprise_id is not null then 'portal_b4s'
+            when o.partner_key is not null then o.link_source_system
+        end as parent_source_system,
         'B4S' as platform
     from {{ source('spike_stg', 'stg_b4s_institutions') }} i
+    left join {{ ref('partner_overlay') }} o
+        on o.product = 'B4S'
+       and o.link_kind = 'institution'
+       and o.link_pk = cast(i.id as varchar)
 ),
 
-unioned as (
+legacy as (
     select * from cle
     union all
     select * from agents
@@ -106,7 +173,7 @@ unioned as (
     select * from intermediates
 ),
 
-with_sk as (
+legacy_sk as (
     select
         row_number() over (
             order by source_system, entity_type, source_pk
@@ -114,28 +181,57 @@ with_sk as (
         u.*,
         g.gid_sk,
         getdate() as loaded_at
-    from unioned u
+    from legacy u
     left join {{ ref('dim_gid') }} g
         on g.gid = u.gid
+),
+
+partner_sk as (
+    select
+        1000000 + row_number() over (
+            order by source_system, source_pk
+        ) as entity_sk,
+        p.*,
+        g.gid_sk,
+        getdate() as loaded_at
+    from partners p
+    left join {{ ref('dim_gid') }} g
+        on g.gid = p.gid
+),
+
+with_sk as (
+    select * from legacy_sk
+    union all
+    select * from partner_sk
 )
 
 select
-    entity_sk,
-    gid_sk,
-    entity_type,
-    entity_name,
-    entity_status,
-    cast(null as integer) as parent_entity_sk,
-    cast(null as integer) as partner_entity_sk,
+    e.entity_sk,
+    e.gid_sk,
+    e.entity_type,
+    e.entity_name,
+    e.entity_status,
+    case
+        when e.entity_type = 'Intermediate' then p.entity_sk
+        else cast(null as integer)
+    end as parent_entity_sk,
+    case
+        when e.entity_type = 'Intermediate' then p.entity_sk
+        else cast(null as integer)
+    end as partner_entity_sk,
     cast(null as integer) as institution_entity_sk,
-    platform,
-    platform as product,
-    source_system,
-    source_pk,
-    b4b_cle_id,
-    b4s_cle_id,
-    legal_entity_country,
-    parent_source_system,
-    parent_source_pk,
-    loaded_at
-from with_sk
+    e.platform,
+    e.platform as product,
+    e.source_system,
+    e.source_pk,
+    e.b4b_cle_id,
+    e.b4s_cle_id,
+    e.legal_entity_country,
+    e.parent_source_system,
+    e.parent_source_pk,
+    e.loaded_at
+from with_sk e
+left join with_sk p
+    on p.entity_type = 'Partner'
+   and p.source_system = e.parent_source_system
+   and p.source_pk = e.parent_source_pk
