@@ -1,7 +1,6 @@
 cubes:
   - name: payment_rails
-    # Prefer spike.dim_payment_rail after admin rebuild; build table until then.
-    sql_table: spike.dim_payment_rail_build
+    sql_table: spike.dim_payment_rail
     description: >
       Payment rail catalogue (F### grain). fact.rail_sk joins to id.
       payment_rail is the BC scheme name for grouping (historic F-code bridge).
