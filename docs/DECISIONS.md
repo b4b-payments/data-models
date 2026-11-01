@@ -14,6 +14,18 @@ Yahoo pairs are USD-crossed (DKK_USD, USD_EUR, …), not direct DKK_EUR. Convert
 
 Staging keeps up with the PassFort sync cron via watermark merge (`run_fx_incremental.sh`); dbt incremental uses `source_updated_at` plus a 3-day `rate_date` lookback.
 
+## 2026-11-01 — OVERSIGHT native amount is debit, not transfer EUR (final)
+
+**Decision (final):** For Oversight, `fact_payment.amount` / `currency_sk` use `debtorInformation.debitAmount` when present. Do **not** use Oversight/BC transfer/`p.amount` when that is already a foreign-currency (often EUR) figure — consolidated `amount_eur` must come from as-of FX on the debit currency via `fact_payment_reporting`. Transfer stays on `settled_amount` / `settled_currency_sk`.
+
+## 2026-11-01 — fact_payment_reporting must fully convert (final)
+
+**Decision (final):** Consolidated reporting rows must never leave `amount_gbp` / `amount_eur` / `amount_usd` null, and `fx_matched_*` must all be true. Missing FX paths are test failures, not soft gaps.
+
+**Tests:** schema `not_null` + `fx_matched_*` accepted `true`; singular `fact_payment_reporting_unmatched_fx`, `fact_payment_reporting_coverage` (1:1 with `fact_payment`), `fact_payment_reporting_identity_amounts`.
+
+**Open:** 3 historical B4B `HRK` payments (2022) have no Yahoo pair today — suite fails until we add a rate path or an agreed fixed HRK→EUR handling.
+
 ## 2026-10-30 — Counterparty grain is the account, and the other role is unknown (final for this phase)
 
 **Decision (final for this phase):** From the council review of the same date. `dim_party` is one row per product and trimmed counterparty account for B4B and B4S, and one row per product and `beneficiary_id` for OVERSIGHT. The fact hashes that key from the payment row. A blank account hashes the single token `~unknown`. The name is a label, not part of the key.

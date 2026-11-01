@@ -7,7 +7,8 @@
     on_schema_change='append_new_columns',
     dist='entity_sk',
     sort=['date_sk', 'source_system'],
-    pre_hook=["{{ delete_missing_fact_payments() }}"]
+    pre_hook=["{{ delete_missing_fact_payments() }}"],
+    post_hook=["grant select on {{ this }} to airbyte_spike"]
 ) }}
 
 -- Grain: one portal payment notification (B4B or B4S), or one Oversight payment.
@@ -38,10 +39,20 @@ oversight as (
         a.account_sk,
         a.entity_sk,
         rc.id as rail_sk,
-        cur.id as currency_sk,
+        -- Native money = debit/instructed when present. Do not use Oversight/BC
+        -- transfer amount (often already in EUR/USD) as the fact measure — reporting
+        -- FX (as-of Yahoo) converts from this native currency instead.
+        case
+            when nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'debtorInformation', 'debitAmount', 'amount'), '') is not null
+                then coalesce(icur.id, cur.id)
+            else cur.id
+        end as currency_sk,
         d.id as date_sk,
         p.created_at as event_ts,
-        p.amount,
+        coalesce(
+            cast(nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'debtorInformation', 'debitAmount', 'amount'), '') as decimal(18, 4)),
+            p.amount
+        ) as amount,
         p.status as payment_status,
         -- Oversight is outbound initiation. Successful rows have payment.classification;
         -- failed BC error JSON has none — default those to Outgoing (not unknown).

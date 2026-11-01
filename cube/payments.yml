@@ -537,7 +537,7 @@ cubes:
   - name: payment_reporting
     sql_table: spike.fact_payment_reporting
     description: >
-      Slim FX reporting fact. amount_gbp/eur/usd from as-of Yahoo rates.
+      Slim FX reporting fact. amount_gbp/eur/usd from as-of FX rates.
       Join 1:1 to payments on payment_sk. Rebuilt when FX ticks.
 
     dimensions:
@@ -568,15 +568,15 @@ cubes:
       - name: amount_in_gbp
         sql: amount_gbp
         type: sum
-        description: Payment volume converted to GBP (as-of Yahoo).
+        description: Payment volume converted to GBP (as-of FX).
       - name: amount_in_eur
         sql: amount_eur
         type: sum
-        description: Payment volume converted to EUR (as-of Yahoo).
+        description: Payment volume converted to EUR (as-of FX).
       - name: amount_in_usd
         sql: amount_usd
         type: sum
-        description: Payment volume converted to USD (as-of Yahoo).
+        description: Payment volume converted to USD (as-of FX).
 
   - name: payments
     sql_table: spike.fact_payment
@@ -733,15 +733,15 @@ cubes:
       - name: amount_in_gbp
         sql: "{payment_reporting.amount_gbp}"
         type: sum
-        description: Converted GBP volume via fact_payment_reporting (as-of Yahoo).
+        description: Converted GBP volume via fact_payment_reporting (as-of FX).
       - name: amount_in_eur
         sql: "{payment_reporting.amount_eur}"
         type: sum
-        description: Converted EUR volume via fact_payment_reporting (as-of Yahoo).
+        description: Converted EUR volume via fact_payment_reporting (as-of FX).
       - name: amount_in_usd
         sql: "{payment_reporting.amount_usd}"
         type: sum
-        description: Converted USD volume via fact_payment_reporting (as-of Yahoo).
+        description: Converted USD volume via fact_payment_reporting (as-of FX).
       - name: with_account_count
         type: count
         filters:

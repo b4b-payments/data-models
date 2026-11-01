@@ -472,13 +472,39 @@ models:
   - name: fact_payment_reporting
     description: >
       Slim materialized reporting fact. One row per payment_sk with amount_gbp/eur/usd
-      from as-of Yahoo FX. Rebuild on FX cron; never bake these onto fact_payment.
+      from as-of FX. Rebuild on FX cron; never bake these onto fact_payment.
+      Every row must convert to GBP, EUR, and USD — null amounts or unmatched
+      FX paths fail the suite (see tests/fact_payment_reporting_*.sql).
     columns:
       - name: payment_sk
         data_tests: [unique, not_null]
+      - name: currency_sk
+        data_tests: [not_null]
+      - name: date_sk
+        data_tests: [not_null]
+      - name: source_currency
+        data_tests: [not_null]
       - name: amount_gbp
+        description: Native amount converted to GBP; must never be null.
+        data_tests: [not_null]
       - name: amount_eur
+        description: Native amount converted to EUR; must never be null.
+        data_tests: [not_null]
       - name: amount_usd
+        description: Native amount converted to USD; must never be null.
+        data_tests: [not_null]
+      - name: fx_matched_gbp
+        data_tests: [not_null]
+      - name: fx_matched_eur
+        data_tests: [not_null]
+      - name: fx_matched_usd
+        data_tests: [not_null]
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >
+              fx_matched_gbp and fx_matched_eur and fx_matched_usd
+              and amount_gbp is not null and amount_eur is not null and amount_usd is not null
 
   - name: v_fact_payment_amount_eur
     description: Interim EUR-only spike. Prefer fact_payment_reporting.
