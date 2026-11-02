@@ -6,10 +6,13 @@
 -- Grain: one link between two pieces of evidence.
 -- First build. superseded_by_match_sk is empty. A later rule inserts a new
 -- row rather than updating this one. This materialisation replaces the table.
--- Link order: trace id, then portal transaction_link, then AuthId or FinId
+-- Link order: Traceid_Lifecycle, then portal transaction_link, then AuthId or FinId
 -- to the portal processor transaction id, then processor_ref to LoadUnloadId.
+-- Traceid_Lifecycle == portal processor_traceid. It is NOT transaction_link.
+-- AuthId (fact_card_financial.auth_sk) is the primary GPS auth↔financial key.
 -- A weaker method is not also written when a stronger one already matches.
 -- One authorisation may link to many financials. Amounts stay on the facts.
+-- Catalogue: data-engineering docs/25_cards_star_council_plan.md (lifecycle link keys).
 
 with auth as (
     select
