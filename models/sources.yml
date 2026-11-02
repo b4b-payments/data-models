@@ -109,3 +109,9 @@ sources:
       - name: dim_payment_rail
       - name: dim_currency
       - name: dim_date
+
+  - name: spike_fx
+    description: As-of FX spine maintained by the FX cron. Not rebuilt by dbt.
+    schema: spike
+    tables:
+      - name: fx_rate_spine

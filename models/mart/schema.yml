@@ -476,8 +476,9 @@ models:
 
   - name: fact_payment_reporting
     description: >
-      Slim materialized reporting fact. One row per payment_sk with amount_gbp/eur/usd
-      from as-of FX. Rebuild on FX cron; never bake these onto fact_payment.
+      Slim reporting fact. One row per payment_sk with amount_gbp/eur/usd
+      from the as-of FX spine. Incremental on changed payments; a rate change
+      restates the affected keys. Never bake these onto fact_payment.
       Every row must convert to GBP, EUR, and USD — null amounts or unmatched
       FX paths fail the suite (see tests/fact_payment_reporting_*.sql).
     columns:

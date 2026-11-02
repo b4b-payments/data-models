@@ -1,184 +1,78 @@
 {{ config(
     alias='fact_payment_reporting',
     tags=['fx', 'payments', 'mart'],
-    materialized='table',
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='payment_sk',
+    on_schema_change='append_new_columns',
     dist='payment_sk',
-    sort=['date_sk', 'payment_sk']
+    sort=['date_sk', 'payment_sk'],
+    pre_hook=["{{ carry_forward_fx_spine() }}"],
+    post_hook=["{{ delete_reporting_orphans() }}"]
 ) }}
 
--- Slim reporting fact: one row per payment_sk with GBP/EUR/USD amounts.
--- Not on fact_payment (late FX). Rebuild on FX cron; conjoin 1:1 for Cube/BI.
--- Yahoo is USD-crossed: identity / direct from→target / else from→USD * USD→target.
--- Each hop is as-of (latest rate on or before booking date).
+-- One row per payment_sk. Amounts come from spike.fx_rate_spine, equijoined
+-- on (currency_sk, date_sk) once per target. The spine already holds the
+-- as-of rate, so this model does not join fact_exchange_rate_daily.
 
 with payment as (
     select
         f.payment_sk,
         f.currency_sk,
         f.date_sk,
-        f.amount,
-        c.currency_code as source_currency,
-        d.calendar_date as booking_date
+        cast(f.amount as double precision) as amount_native,
+        c.currency_code as source_currency
     from {{ ref('fact_payment') }} f
     left join {{ source('spike_live', 'dim_currency') }} c
         on c.id = f.currency_sk
-    left join {{ source('spike_live', 'dim_date') }} d
-        on d.id = f.date_sk
-),
-ccy as (
-    select currency_code, id as currency_sk
-    from {{ source('spike_live', 'dim_currency') }}
-),
-usd as (
-    select currency_sk as usd_sk from ccy where currency_code = 'USD'
+    {% if is_incremental() %}
+    where f.loaded_at >= '{{ var("reporting_run_started_at", "9999-12-31") }}'::timestamp
+    {% endif %}
 ),
 gbp as (
-    select currency_sk as gbp_sk from ccy where currency_code = 'GBP'
+    select id as currency_sk from {{ source('spike_live', 'dim_currency') }} where currency_code = 'GBP'
 ),
 eur as (
-    select currency_sk as eur_sk from ccy where currency_code = 'EUR'
+    select id as currency_sk from {{ source('spike_live', 'dim_currency') }} where currency_code = 'EUR'
 ),
-to_usd as (
-    select
-        p.payment_sk,
-        cast(fx.rate as double precision) as rate_to_usd,
-        row_number() over (
-            partition by p.payment_sk
-            order by d_fx.calendar_date desc nulls last
-        ) as rn
-    from payment p
-    cross join usd u
-    inner join {{ ref('fact_exchange_rate_daily') }} fx
-        on fx.from_currency_sk = p.currency_sk
-       and fx.to_currency_sk = u.usd_sk
-       and fx.vendor = 'yahoo'
-    inner join {{ source('spike_live', 'dim_date') }} d_fx
-        on d_fx.id = fx.date_sk
-       and d_fx.calendar_date <= p.booking_date
-),
-usd_to_gbp as (
-    select
-        p.payment_sk,
-        cast(fx.rate as double precision) as rate_usd_to_gbp,
-        row_number() over (
-            partition by p.payment_sk
-            order by d_fx.calendar_date desc nulls last
-        ) as rn
-    from payment p
-    cross join usd u
-    cross join gbp g
-    inner join {{ ref('fact_exchange_rate_daily') }} fx
-        on fx.from_currency_sk = u.usd_sk
-       and fx.to_currency_sk = g.gbp_sk
-       and fx.vendor = 'yahoo'
-    inner join {{ source('spike_live', 'dim_date') }} d_fx
-        on d_fx.id = fx.date_sk
-       and d_fx.calendar_date <= p.booking_date
-),
-usd_to_eur as (
-    select
-        p.payment_sk,
-        cast(fx.rate as double precision) as rate_usd_to_eur,
-        row_number() over (
-            partition by p.payment_sk
-            order by d_fx.calendar_date desc nulls last
-        ) as rn
-    from payment p
-    cross join usd u
-    cross join eur e
-    inner join {{ ref('fact_exchange_rate_daily') }} fx
-        on fx.from_currency_sk = u.usd_sk
-       and fx.to_currency_sk = e.eur_sk
-       and fx.vendor = 'yahoo'
-    inner join {{ source('spike_live', 'dim_date') }} d_fx
-        on d_fx.id = fx.date_sk
-       and d_fx.calendar_date <= p.booking_date
-),
-direct_gbp as (
-    select
-        p.payment_sk,
-        cast(fx.rate as double precision) as rate,
-        row_number() over (
-            partition by p.payment_sk
-            order by d_fx.calendar_date desc nulls last
-        ) as rn
-    from payment p
-    cross join gbp g
-    inner join {{ ref('fact_exchange_rate_daily') }} fx
-        on fx.from_currency_sk = p.currency_sk
-       and fx.to_currency_sk = g.gbp_sk
-       and fx.vendor = 'yahoo'
-    inner join {{ source('spike_live', 'dim_date') }} d_fx
-        on d_fx.id = fx.date_sk
-       and d_fx.calendar_date <= p.booking_date
-),
-direct_eur as (
-    select
-        p.payment_sk,
-        cast(fx.rate as double precision) as rate,
-        row_number() over (
-            partition by p.payment_sk
-            order by d_fx.calendar_date desc nulls last
-        ) as rn
-    from payment p
-    cross join eur e
-    inner join {{ ref('fact_exchange_rate_daily') }} fx
-        on fx.from_currency_sk = p.currency_sk
-       and fx.to_currency_sk = e.eur_sk
-       and fx.vendor = 'yahoo'
-    inner join {{ source('spike_live', 'dim_date') }} d_fx
-        on d_fx.id = fx.date_sk
-       and d_fx.calendar_date <= p.booking_date
-),
-rates as (
-    select
-        p.payment_sk,
-        p.currency_sk,
-        p.date_sk,
-        cast(p.amount as double precision) as amount_native,
-        p.source_currency,
-        case
-            when p.source_currency = 'GBP' then 1.0
-            when dg.rate is not null then dg.rate
-            when tu.rate_to_usd is not null and ug.rate_usd_to_gbp is not null
-                then tu.rate_to_usd * ug.rate_usd_to_gbp
-            else null
-        end as rate_gbp,
-        case
-            when p.source_currency = 'EUR' then 1.0
-            when de.rate is not null then de.rate
-            when tu.rate_to_usd is not null and ue.rate_usd_to_eur is not null
-                then tu.rate_to_usd * ue.rate_usd_to_eur
-            else null
-        end as rate_eur,
-        case
-            when p.source_currency = 'USD' then 1.0
-            when tu.rate_to_usd is not null then tu.rate_to_usd
-            else null
-        end as rate_usd
-    from payment p
-    left join to_usd tu
-        on tu.payment_sk = p.payment_sk and tu.rn = 1
-    left join usd_to_gbp ug
-        on ug.payment_sk = p.payment_sk and ug.rn = 1
-    left join usd_to_eur ue
-        on ue.payment_sk = p.payment_sk and ue.rn = 1
-    left join direct_gbp dg
-        on dg.payment_sk = p.payment_sk and dg.rn = 1
-    left join direct_eur de
-        on de.payment_sk = p.payment_sk and de.rn = 1
+usd as (
+    select id as currency_sk from {{ source('spike_live', 'dim_currency') }} where currency_code = 'USD'
 )
 
 select
-    payment_sk,
-    date_sk,
-    currency_sk,
-    source_currency,
-    cast(case when rate_gbp is not null then amount_native * rate_gbp end as decimal(18, 4)) as amount_gbp,
-    cast(case when rate_eur is not null then amount_native * rate_eur end as decimal(18, 4)) as amount_eur,
-    cast(case when rate_usd is not null then amount_native * rate_usd end as decimal(18, 4)) as amount_usd,
-    (rate_gbp is not null) as fx_matched_gbp,
-    (rate_eur is not null) as fx_matched_eur,
-    (rate_usd is not null) as fx_matched_usd,
-    getdate() as loaded_at
-from rates
+    p.payment_sk,
+    p.date_sk,
+    p.currency_sk,
+    p.source_currency,
+    cast(case when g.rate is not null then p.amount_native * g.rate end as decimal(18, 4)) as amount_gbp,
+    cast(case when e.rate is not null then p.amount_native * e.rate end as decimal(18, 4)) as amount_eur,
+    cast(case when u.rate is not null then p.amount_native * u.rate end as decimal(18, 4)) as amount_usd,
+    (g.rate is not null) as fx_matched_gbp,
+    (e.rate is not null) as fx_matched_eur,
+    (u.rate is not null) as fx_matched_usd,
+    getdate() as loaded_at,
+    g.fx_path as fx_path_gbp,
+    e.fx_path as fx_path_eur,
+    u.fx_path as fx_path_usd,
+    g.direct_rate_date as rate_date_gbp,
+    e.direct_rate_date as rate_date_eur,
+    u.direct_rate_date as rate_date_to_usd,
+    g.usd_target_rate_date as rate_date_usd_gbp,
+    e.usd_target_rate_date as rate_date_usd_eur,
+    cast(null as timestamp) as restated_at
+from payment p
+cross join gbp gb
+cross join eur er
+cross join usd us
+left join {{ source('spike_fx', 'fx_rate_spine') }} g
+    on g.from_currency_sk = p.currency_sk
+   and g.date_sk = p.date_sk
+   and g.target_currency_sk = gb.currency_sk
+left join {{ source('spike_fx', 'fx_rate_spine') }} e
+    on e.from_currency_sk = p.currency_sk
+   and e.date_sk = p.date_sk
+   and e.target_currency_sk = er.currency_sk
+left join {{ source('spike_fx', 'fx_rate_spine') }} u
+    on u.from_currency_sk = p.currency_sk
+   and u.date_sk = p.date_sk
+   and u.target_currency_sk = us.currency_sk
