@@ -1,0 +1,34 @@
+---
+description: Never aggregate money across mixed native currencies; flag gaps and propose FX
+alwaysApply: true
+---
+
+# No mixed-currency money aggregates
+
+Summing (or averaging) amounts that are not in one currency is always wrong — apples and pears. This applies to Cube measures, dbt tests, Superset charts, SQL probes, and any “total” spoken to the user.
+
+## Hard rules
+
+1. **Do not** `SUM` / `AVG` / KPI native amount columns unless every row in the aggregate is the **same** currency (explicit filter on currency code, and the chart/footnote says that currency).
+2. **Do** use consolidated as-of FX measures for cross-currency reporting:
+   - Payments: `amount_in_eur` / `amount_in_gbp` / `amount_in_usd` via `fact_payment_reporting` (not bare `amount` or native-only `amount_eur`).
+   - Cards: `settlement_in_eur` / `fee_in_eur` (and gbp/usd twins) via `fact_card_txn_reporting`.
+3. **Never** ship a dashboard, chart, or “headline total” that mixes natives. Prefer **€** as the default consolidated currency unless the user asks for GBP/USD.
+4. `dim_currency` carries ISO 4217 as `iso_currency_code` (alpha) + `numeric_code` + `minor_units`. GPS / scheme feeds often store ISO **numeric** codes — joins must use `currency_code_match` (iso alpha, catalogue code, or numeric). A null `currency_sk` is a defect, not “currency-agnostic”.
+
+## When the model does not support consolidation
+
+**Stop.** Do not invent a mixed total. Tell Khauram clearly that the model cannot support a safe money aggregate yet, then propose options, for example:
+
+- Add / rebuild an FX companion fact (Payments-style `*_reporting` + `fx_rate_spine`)
+- Expose Cube measures that SUM the companion dimensions (not nested sum-of-sums)
+- Restrict the chart to one currency with an explicit filter + label
+- Counts / rates / unitless metrics only until FX lands
+
+Ask **one** clarifying question if the target reporting currency or as-of rule is unclear. Record the gap in `docs/FINDINGS.md` or `docs/DECISIONS.md` (open) rather than silently charting natives.
+
+## Review checklist (Cube / BI / dbt)
+
+- [ ] Money measure path is consolidated FX **or** single-currency filtered and labelled
+- [ ] Footnote states grain, currency, and as-of FX when consolidated
+- [ ] Native amount measures are eng-only or clearly named so BI wiring cannot pick them by default

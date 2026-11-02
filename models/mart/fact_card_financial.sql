@@ -151,11 +151,11 @@ left join {{ ref('dim_card_scheme') }} s
 left join {{ ref('dim_processor') }} p
     on p.processor_code = f.source_system
 left join {{ source('spike_live', 'dim_currency') }} cur
-    on cur.currency_code = f.txn_currency_code
+    on {{ currency_code_match('cur', 'f.txn_currency_code') }}
 left join {{ source('spike_live', 'dim_currency') }} bcur
-    on bcur.currency_code = f.billing_currency_code
+    on {{ currency_code_match('bcur', 'f.billing_currency_code') }}
 left join {{ source('spike_live', 'dim_currency') }} scur
-    on scur.currency_code = f.settlement_currency_code
+    on {{ currency_code_match('scur', 'f.settlement_currency_code') }}
 left join {{ source('spike_live', 'dim_date') }} d
     on d.calendar_date = f.txn_date
 left join {{ source('spike_live', 'dim_date') }} sd

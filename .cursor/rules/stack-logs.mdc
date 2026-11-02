@@ -1,0 +1,23 @@
+---
+description: Pull data-stack logs before guessing causes of hangs or latency
+alwaysApply: true
+---
+
+# Stack logs
+
+When diagnosing dashboard hangs (“Waiting on Cube”), slow tiles, Cube errors, BI chart failures, or warehouse contention on uat111, **run the log CLI before hypothesising**.
+
+```bash
+python3 /root/DEV/data-cube/scripts/stack_logs.py snapshot
+```
+
+Then narrow:
+
+| Symptom | Command |
+|---|---|
+| Cube Continue wait / SQL API | `… cube --since 30m --grep 'Continue wait'` |
+| Chart / Celery error | `… bi --service worker --since 1h --grep Error` |
+| FX / payments saturating RS | `… jobs --which all` then `… rs --minutes 60` |
+| TLS / host routing | `… edge --tail 80` |
+
+Full map: [docs/LOGS.md](docs/LOGS.md). Never print `.env` secrets. Prefer evidence from these logs over “probably”.

@@ -39,3 +39,10 @@ seeds:
   b4b_models:
     +schema: spike
     +quote_columns: false
+
+vars:
+  # fact_card_txn history window (demo cut: from 2025-01-01; open end).
+  card_txn_week_start: "2025-01-01"
+  card_txn_week_end: "2099-12-31"
+  # Incremental ticks only rewrite this many trailing calendar days (not full history).
+  card_txn_incremental_lookback_days: 7

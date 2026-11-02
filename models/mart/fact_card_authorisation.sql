@@ -100,9 +100,9 @@ left join {{ ref('dim_card_scheme') }} s
 left join {{ ref('dim_processor') }} p
     on p.processor_code = k.source_system
 left join {{ source('spike_live', 'dim_currency') }} cur
-    on cur.currency_code = k.txn_currency_code
+    on {{ currency_code_match('cur', 'k.txn_currency_code') }}
 left join {{ source('spike_live', 'dim_currency') }} bcur
-    on bcur.currency_code = k.billing_currency_code
+    on {{ currency_code_match('bcur', 'k.billing_currency_code') }}
 left join {{ source('spike_live', 'dim_date') }} d
     on d.calendar_date = k.txn_date
 left join {{ source('spike_live', 'dim_date') }} sd

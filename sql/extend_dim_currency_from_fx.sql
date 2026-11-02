@@ -6,6 +6,7 @@ INSERT INTO spike.dim_currency (
     id,
     currency_code,
     currency_name,
+    iso_currency_code,
     numeric_code,
     minor_units,
     is_iso_seed,
@@ -46,6 +47,7 @@ SELECT
     id,
     currency_code,
     currency_code AS currency_name,
+    CAST(NULL AS VARCHAR(3)) AS iso_currency_code,  -- non-ISO FX tickers (e.g. crypto)
     CAST(NULL AS VARCHAR(8)) AS numeric_code,
     CAST(NULL AS SMALLINT) AS minor_units,
     FALSE AS is_iso_seed,

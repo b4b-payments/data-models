@@ -62,6 +62,16 @@ select
     t.merchant_country as merchant_country_code,
     t.resp_code_de39 as response_code,
     t.processor as processor_code_raw,
+    case
+        when t.source_system = 'portal_b4b' then 'B4B'
+        when t.source_system = 'portal_b4s' then 'B4S'
+        when nullif(trim(ent.product), '') is not null then ent.product
+        when a.source_system = 'oversight' then 'OVERSIGHT'
+        else cast(null as varchar)
+    end as product,
+    a.b4b_legal_entity,
+    a.account_name as company_name,
+    ent.entity_name,
     getdate() as loaded_at
 from txns t
 left join (
@@ -71,13 +81,15 @@ left join (
 left join {{ ref('dim_account') }} a
     on a.source_system = t.source_system
    and a.source_pk = cast(t.company_id as varchar)
+left join {{ ref('dim_entity') }} ent
+    on ent.entity_sk = a.entity_sk
 left join {{ ref('dim_processor') }} pr
     on pr.processor_code = lower(trim(t.processor))
 left join {{ source('spike_live', 'dim_currency') }} cur
-    on cur.currency_code = upper(trim(t.currency))
+    on {{ currency_code_match('cur', 'upper(trim(t.currency))') }}
 left join {{ source('spike_live', 'dim_currency') }} bcur
-    on bcur.currency_code = upper(trim(t.billing_currency))
+    on {{ currency_code_match('bcur', 'upper(trim(t.billing_currency))') }}
 left join {{ source('spike_live', 'dim_currency') }} scur
-    on scur.currency_code = upper(trim(t.settlement_currency))
+    on {{ currency_code_match('scur', 'upper(trim(t.settlement_currency))') }}
 left join {{ source('spike_live', 'dim_date') }} d
     on d.calendar_date = cast(t.transaction_date as date)

@@ -55,6 +55,20 @@ User-facing: B4B BI, Cube, Payments, B4B / B4S / OVERSIGHT.
 Avoid: Spike, Payment Star, star.
 Warehouse objects may still say `spike` / `airbyte_spike` until rename.
 
+## Currency
+
+Never aggregate mixed native money. Use as-of FX consolidated measures (`amount_in_eur`, Cards `settlement_in_eur`, …). If the model cannot support that yet, flag it and propose options — rule `no-mixed-currency-aggregates.mdc`.
+
+## Logs
+
+Cross-layer dump (Cube, BI worker, HAProxy, payments/FX jobs, Redshift `sys_query_history`):
+
+```bash
+python3 /root/DEV/data-cube/scripts/stack_logs.py snapshot
+```
+
+Map: `data-cube/docs/LOGS.md`. Use this before guessing hang/latency causes.
+
 ## Deploy
 
 Current UAT is compose on uat111. Later: images we build, on ECS.

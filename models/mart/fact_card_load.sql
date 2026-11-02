@@ -216,6 +216,7 @@ select
     cur.id as currency_sk,
     d.id as date_sk,
     sd.id as settlement_date_sk,
+    cast(s.txn_date as timestamp) as event_ts,
     s.amount,
     s.fixed_fee_amount,
     s.rate_fee_amount,
@@ -224,6 +225,18 @@ select
     s.processor_card_id,
     s.voided_load_id,
     s.channel,
+    case
+        when s.source_system = 'portal_b4b' then 'B4B'
+        when s.source_system = 'portal_b4s' then 'B4S'
+        when nullif(trim(ent.product), '') is not null then ent.product
+        when coalesce(a.source_system, acc.source_system) = 'portal_b4b' then 'B4B'
+        when coalesce(a.source_system, acc.source_system) = 'portal_b4s' then 'B4S'
+        when coalesce(a.source_system, acc.source_system) = 'oversight' then 'OVERSIGHT'
+        else cast(null as varchar)
+    end as product,
+    coalesce(a.b4b_legal_entity, acc.b4b_legal_entity) as b4b_legal_entity,
+    coalesce(a.account_name, acc.account_name) as company_name,
+    ent.entity_name,
     getdate() as loaded_at
 from shaped s
 left join (
@@ -234,12 +247,25 @@ left join {{ ref('dim_account') }} a
     on a.source_system = s.source_system
    and a.source_pk = s.company_id
    and s.source_system in ('portal_b4b', 'portal_b4s')
+left join {{ ref('dim_account') }} acc
+    on acc.account_sk = c.account_sk
+   and s.source_system not in ('portal_b4b', 'portal_b4s')
+left join {{ ref('dim_entity') }} ent
+    on ent.entity_sk = coalesce(
+        case
+            when upper(s.processor_program_id) like 'WV%' then null
+            when s.source_system in ('portal_b4b', 'portal_b4s') then a.entity_sk
+            else c.entity_sk
+        end,
+        a.entity_sk,
+        c.entity_sk
+    )
 left join {{ ref('dim_processor') }} p
     on p.processor_code = case
         when s.source_system in ('gps_mc', 'gps_visa') then s.source_system
     end
 left join {{ source('spike_live', 'dim_currency') }} cur
-    on cur.currency_code = s.currency_code
+    on {{ currency_code_match('cur', 's.currency_code') }}
 left join {{ source('spike_live', 'dim_date') }} d
     on d.calendar_date = s.txn_date
 left join {{ source('spike_live', 'dim_date') }} sd

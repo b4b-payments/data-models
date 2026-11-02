@@ -51,7 +51,7 @@ left join (
 left join {{ ref('dim_processor') }} p
     on p.processor_code = g.source_system
 left join {{ source('spike_live', 'dim_currency') }} cur
-    on cur.currency_code = upper(trim(g."feeamt-currency"))
+    on {{ currency_code_match('cur', 'upper(trim(g."feeamt-currency"))') }}
 left join {{ source('spike_live', 'dim_date') }} d
     on d.calendar_date = cast(g.localdate as date)
 left join {{ source('spike_live', 'dim_date') }} sd

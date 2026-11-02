@@ -364,6 +364,76 @@ models:
       - name: processor_code
         data_tests: [unique, not_null]
 
+  - name: dim_mcc
+    description: Standard merchant category codes with a coarse bank-style mcc_group.
+    columns:
+      - name: mcc_sk
+        data_tests: [unique, not_null]
+      - name: mcc_code
+        data_tests: [unique, not_null]
+
+  - name: fact_card_txn
+    description: >
+      Derived card-transaction outcomes. Presentment = one FinId (auth optional).
+      Decline = EHI decline with no FinId. Auth vs fin lookalike amounts stay separate.
+      Native amount columns stay on this fact; Cards BI amounts come from
+      fact_card_txn_reporting (as-of FX). product and event_ts support Cards BI filters.
+    columns:
+      - name: card_txn_sk
+        data_tests: [unique, not_null]
+      - name: card_txn_nk
+        data_tests: [unique, not_null]
+      - name: txn_outcome
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['presentment', 'decline']
+      - name: product
+        description: B4B | B4S | OVERSIGHT when resolvable from posting, portal source, or entity/account.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['B4B', 'B4S', 'OVERSIGHT']
+                config:
+                  where: "product is not null"
+      - name: b4b_legal_entity
+        description: UK | US | LT denormalised from dim_account for Cards BI filters (no join).
+      - name: company_name
+        description: Account display name denormalised from dim_account.
+      - name: entity_name
+        description: Legal entity display name denormalised from dim_entity.
+      - name: event_ts
+        description: Coalesced presentment / EHI / posting / auth UTC clock for time filters.
+      - name: missing_auth
+        description: 1 when presentment has no auth_sk.
+      - name: missing_posting
+        description: 1 when presentment has no posting_sk.
+      - name: decline_missing_auth
+        description: 1 when decline has no auth_sk.
+      - name: processor_sk
+        description: First-class processor family (not the same as source_system feed arm).
+
+  - name: fact_card_txn_reporting
+    description: >
+      Slim as-of FX companion for fact_card_txn (same spine as payments).
+      Grain one card_txn_sk. settlement_amount_eur/gbp/usd and fee_amount_*.
+      Cards BI must use these consolidated amounts — never sum mixed natives.
+    columns:
+      - name: card_txn_sk
+        data_tests: [unique, not_null]
+
+  - name: fact_card_load_reporting
+    description: As-of FX companion for fact_card_load. amount_eur/gbp/usd.
+    columns:
+      - name: load_sk
+        data_tests: [unique, not_null]
+
+  - name: fact_card_balance_posting_reporting
+    description: As-of FX companion for fact_card_balance_posting (ledger spend).
+    columns:
+      - name: posting_sk
+        data_tests: [unique, not_null]
+
   - name: fact_card_authorisation
     description: GPS authorisations, including declines. Not scheme settlement.
     columns:

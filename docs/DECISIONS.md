@@ -1,5 +1,41 @@
 # Decisions — data-models
 
+## 2026-11-02 — fact_card_txn week prove-out (final for this slice)
+
+**Decision (final for week prove-out):** `spike.fact_card_txn` is a derived incremental mart (not SoR). Grain: presentment = one `FinId`; decline = one EHI decline with no FinId. Auth attributes are optional and prefixed `auth_*`. First build uses vars `card_txn_week_start` / `card_txn_week_end` (default 2026-10-20 → 2026-10-26). GPS event clocks use `localdateutc` as MMDDHHMMSS with year from `localdate` (macro `gps_event_ts_utc`). Companion FX table is deferred and will not be named `*_reporting`.
+
+## 2026-11-02 — fact_card_txn carries product + event_ts for Cards BI (final)
+
+**Decision (final):** Materialize `product` (B4B|B4S|OVERSIGHT when resolvable), coalesced `event_ts`, `mcc_group`, and lifecycle gap flags (`missing_auth`, `missing_posting`, `decline_missing_auth`) on `fact_card_txn` so Cards dashboards share Payments-style filters. Window widened to 2026-10-01→2026-11-02 for the first hub default (last 30 days).
+
+## 2026-11-02 — fact_card_txn denormalises LE / company for Cards BI (final for week prove-out)
+
+**Decision (final for week prove-out):** Also store `b4b_legal_entity`, `company_name`, and `entity_name` on `fact_card_txn` (from `dim_account` / `dim_entity` at build) so Cards BI filters do not need Cube joins. Optional Cube joins to `accounts`/`entities` remain for explorers.
+
+## 2026-11-02 — Cards history from 2025-01-01 for demo (final this cut)
+
+**Decision (final this cut):** Widen derived `fact_card_txn` (and FX companions) from existing GPS/portal staging to **2025-01-01 → today**. No DMS re-run. Incremental ticks rewrite only a **7-day** lookback; FX rate ticks restate cards `*_reporting` without rebuilding txn facts. Supersedes the earlier open “~1 year after dashboards agree” plan for this demo.
+
+## 2026-11-02 — Cards 1-year import after dashboard agreement (superseded)
+
+**Decision (superseded 2026-11-02):** Replaced by history-from-2025-01-01 demo cut above.
+
+## 2026-11-02 — Cards load/spend FX companions for Zoho pulse (final for this cut)
+
+**Decision (final for this cut):** `fact_card_load_reporting` and `fact_card_balance_posting_reporting` convert amounts via `fx_rate_spine` (as-of). Cube exposes `portal_load_in_eur` and `ledger_spend_in_eur`. Facts also carry denormalised `product` / `b4b_legal_entity` / company / entity for thin BI SQL. Portal loads and GPS load confirmations stay separate measures (never added).
+
+## 2026-11-02 — dim_currency carries ISO 4217 attributes (final)
+
+**Decision (final):** `spike.dim_currency` exposes ISO 4217 explicitly: `iso_currency_code` (alpha-3, null for non-ISO tickers), `numeric_code` (numeric-3), `minor_units`. `currency_code` remains the catalogue natural key (fiat ISO alpha or crypto ticker). GPS/scheme joins use `currency_code_match` against iso alpha, catalogue code, or numeric. Cube `currencies` exposes all three.
+
+## 2026-11-02 — Never aggregate mixed native currencies (final, standing)
+
+**Decision (final):** Stack-wide: do not SUM mixed native money. Consolidated as-of FX (€ default) or single-currency filtered+labelled only. If the model cannot support that, flag and propose — do not ship. Rule: `no-mixed-currency-aggregates.mdc`.
+
+## 2026-11-02 — Cards BI amounts are consolidated EUR only (final)
+
+**Decision (final):** Never chart mixed native currencies on Cards reports. GPS currency codes are ISO numeric; join `dim_currency` on `numeric_code` or `currency_code`. Publish `fact_card_txn_reporting` (as-of FX via `fx_rate_spine`, same as payments) with settlement/fee in GBP/EUR/USD. Cards hub / lifecycle / mix / settlement-vs-ledger use Cube `settlement_in_eur` / `fee_in_eur` / `portal_load_in_eur` / `ledger_spend_in_eur`. Native `scheme_settlement` stays eng-only. Settlement-vs-ledger EUR conversion closed 2026-11-02.
+
 ## 2026-11-02 — B4B legal entity is first-class on the account (final)
 
 **Decision (final):** Payments reporting filters by **B4B legal entity** = portal company `legal_entity_country` (**UK** | **US** | **LT**), promoted as `dim_account.b4b_legal_entity`. Account/company grain — not CLE. CLE `tm_incorporation_country` / `dim_entity.legal_entity_country` stay unused for this cut (currently empty; some CLEs span multiple B4B LEs). Same standing as Product across Cube and all Payments BI.

@@ -2,8 +2,8 @@
 # Amounts are read from the fact that owns them.
 # EHI observed_ amounts are not measures.
 # There is no class view with SUM(amount).
-# Deploy only after host data is started:
-#   copy to data:/root/khauram/cube/model/ and restart the cube container.
+# UAT: copy to /root/khauram/cube/model/ and restart Cube.
+# EHI amounts stay off measures. Do not add the cubes together.
 
 cubes:
   - name: card_financial
@@ -27,9 +27,32 @@ cubes:
       - name: count
         type: count
 
+  - name: card_balance_posting_reporting
+    sql_table: spike.fact_card_balance_posting_reporting
+    description: As-of FX companion for ledger spend. Amount columns are dimensions for SUM joins.
+    dimensions:
+      - name: posting_sk
+        sql: posting_sk
+        type: number
+        primary_key: true
+      - name: amount_eur
+        sql: amount_eur
+        type: number
+      - name: amount_gbp
+        sql: amount_gbp
+        type: number
+      - name: amount_usd
+        sql: amount_usd
+        type: number
+
   - name: card_balance_posting
     sql_table: spike.fact_card_balance_posting
     description: Customer-ledger spend. Financial rows that post to the balance.
+
+    joins:
+      - name: card_balance_posting_reporting
+        sql: "{CUBE}.posting_sk = {card_balance_posting_reporting.posting_sk}"
+        relationship: one_to_one
 
     dimensions:
       - name: posting_sk
@@ -39,12 +62,31 @@ cubes:
       - name: source_system
         sql: source_system
         type: string
+      - name: product
+        sql: product
+        type: string
+      - name: b4b_legal_entity
+        sql: b4b_legal_entity
+        type: string
+      - name: company_name
+        sql: company_name
+        type: string
+      - name: entity_name
+        sql: entity_name
+        type: string
+      - name: event_ts
+        sql: event_ts
+        type: time
 
     measures:
       - name: customer_ledger_spend
         sql: txn_amount
         type: sum
-        description: Customer-ledger spend. Not scheme settlement
+        description: Native ledger spend (eng only — do not use on Cards BI)
+      - name: ledger_spend_in_eur
+        sql: "{card_balance_posting_reporting.amount_eur}"
+        type: sum
+        description: Customer-ledger spend consolidated to EUR (as-of FX). Cards BI default.
       - name: count
         type: count
 
@@ -68,9 +110,32 @@ cubes:
       - name: count
         type: count
 
+  - name: card_load_reporting
+    sql_table: spike.fact_card_load_reporting
+    description: As-of FX companion for card loads. Amount columns are dimensions for SUM joins.
+    dimensions:
+      - name: load_sk
+        sql: load_sk
+        type: number
+        primary_key: true
+      - name: amount_eur
+        sql: amount_eur
+        type: number
+      - name: amount_gbp
+        sql: amount_gbp
+        type: number
+      - name: amount_usd
+        sql: amount_usd
+        type: number
+
   - name: card_load
     sql_table: spike.fact_card_load
     description: Portal loads and GPS load confirmations. The two filters are not added together.
+
+    joins:
+      - name: card_load_reporting
+        sql: "{CUBE}.load_sk = {card_load_reporting.load_sk}"
+        relationship: one_to_one
 
     dimensions:
       - name: load_sk
@@ -80,14 +145,48 @@ cubes:
       - name: source_system
         sql: source_system
         type: string
+      - name: product
+        sql: product
+        type: string
+      - name: b4b_legal_entity
+        sql: b4b_legal_entity
+        type: string
+      - name: company_name
+        sql: company_name
+        type: string
+      - name: entity_name
+        sql: entity_name
+        type: string
+      - name: direction
+        sql: direction
+        type: string
+      - name: successful
+        sql: successful
+        type: number
+      - name: event_ts
+        sql: event_ts
+        type: time
+        description: Load calendar day as timestamp for BI time filters
 
     measures:
       - name: portal_loads
-        sql: "case when source_system in ('portal_b4b', 'portal_b4s') and successful = 1 then amount end"
+        sql: "{CUBE}.amount"
         type: sum
+        description: Native portal loads (eng only)
+        filters:
+          - sql: "{CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1"
       - name: gps_loads
-        sql: "case when source_system in ('gps_mc', 'gps_visa') then amount end"
+        sql: "{CUBE}.amount"
         type: sum
+        description: Native GPS load confirmations (eng only — do not add to portal_loads)
+        filters:
+          - sql: "{CUBE}.source_system in ('gps_mc', 'gps_visa')"
+      - name: portal_load_in_eur
+        sql: "{card_load_reporting.amount_eur}"
+        type: sum
+        description: Successful portal loads consolidated to EUR (as-of FX). Cards BI default.
+        filters:
+          - sql: "{CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1"
       - name: count
         type: count
 
@@ -122,5 +221,177 @@ cubes:
         type: string
 
     measures:
+      - name: count
+        type: count
+
+  - name: card_txn_reporting
+    sql_table: spike.fact_card_txn_reporting
+    description: >
+      As-of FX companion for fact_card_txn. Settlement and fee in GBP/EUR/USD.
+      Cards BI must use these — never sum native mixed currencies.
+      Amount columns are dimensions (like payment_reporting) so card_txn can SUM them.
+
+    dimensions:
+      - name: card_txn_sk
+        sql: card_txn_sk
+        type: number
+        primary_key: true
+      - name: settlement_source_currency
+        sql: settlement_source_currency
+        type: string
+      - name: fee_source_currency
+        sql: fee_source_currency
+        type: string
+      - name: settlement_amount_eur
+        sql: settlement_amount_eur
+        type: number
+      - name: settlement_amount_gbp
+        sql: settlement_amount_gbp
+        type: number
+      - name: settlement_amount_usd
+        sql: settlement_amount_usd
+        type: number
+      - name: fee_amount_eur
+        sql: fee_amount_eur
+        type: number
+      - name: fee_amount_gbp
+        sql: fee_amount_gbp
+        type: number
+      - name: fee_amount_usd
+        sql: fee_amount_usd
+        type: number
+
+    measures:
+      - name: settlement_in_eur
+        sql: settlement_amount_eur
+        type: sum
+      - name: fee_in_eur
+        sql: fee_amount_eur
+        type: sum
+
+  - name: card_txn
+    sql_table: spike.fact_card_txn
+    description: >
+      Derived presentment + decline outcomes (not SoR). Settlement and fee
+      measures stay separate; do not add them. Auth amounts are dimensions only.
+      BI amount charts use settlement_in_eur / fee_in_eur via card_txn_reporting.
+
+    # Prefer denormalised product / b4b_legal_entity / company_name / entity_name on the
+    # fact for BI. Optional joins remain for explorers that need the full dim.
+    joins:
+      - name: card_txn_reporting
+        sql: "{CUBE}.card_txn_sk = {card_txn_reporting.card_txn_sk}"
+        relationship: one_to_one
+      - name: entities
+        sql: "{CUBE}.entity_sk = {entities.entity_sk}"
+        relationship: many_to_one
+      - name: accounts
+        sql: "{CUBE}.account_sk = {accounts.account_sk}"
+        relationship: many_to_one
+
+    dimensions:
+      - name: card_txn_sk
+        sql: card_txn_sk
+        type: number
+        primary_key: true
+      - name: txn_outcome
+        sql: txn_outcome
+        type: string
+      - name: product
+        sql: product
+        type: string
+        description: Business product — B4B | B4S | OVERSIGHT when resolved
+      - name: b4b_legal_entity
+        sql: b4b_legal_entity
+        type: string
+        description: UK | US | LT from dim_account; denormalised for Cards BI filters
+      - name: company_name
+        sql: company_name
+        type: string
+      - name: entity_name
+        sql: entity_name
+        type: string
+      - name: source_system
+        sql: source_system
+        type: string
+      - name: source_fin_id
+        sql: source_fin_id
+        type: string
+      - name: presentment_channel
+        sql: presentment_channel
+        type: string
+      - name: wallet
+        sql: wallet
+        type: string
+      - name: mcc_code
+        sql: mcc_code
+        type: string
+      - name: mcc_group
+        sql: mcc_group
+        type: string
+      - name: event_ts
+        sql: event_ts
+        type: time
+        description: Coalesced presentment / EHI / posting / auth clock for BI time filters
+      - name: presentment_event_ts_utc
+        sql: presentment_event_ts_utc
+        type: time
+      - name: missing_auth
+        sql: missing_auth
+        type: number
+      - name: missing_posting
+        sql: missing_posting
+        type: number
+      - name: decline_missing_auth
+        sql: decline_missing_auth
+        type: number
+      - name: entity_sk
+        sql: entity_sk
+        type: number
+      - name: account_sk
+        sql: account_sk
+        type: number
+
+    measures:
+      # else 0 — NULL sums sort first on Redshift DESC and render as N/A in Superset tables.
+      - name: scheme_settlement
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then {CUBE}.settlement_amount else 0 end"
+        type: sum
+        description: Native scheme settlement (eng only — do not use on Cards BI charts)
+      - name: scheme_fee_sum
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then coalesce({CUBE}.fee_amount_sum, 0) else 0 end"
+        type: sum
+        description: Native linked CardFee sum (eng only — do not use on Cards BI charts)
+      - name: settlement_in_eur
+        sql: "{card_txn_reporting.settlement_amount_eur}"
+        type: sum
+        description: Scheme settlement consolidated to EUR (as-of FX). Cards BI default.
+      - name: fee_in_eur
+        sql: "{card_txn_reporting.fee_amount_eur}"
+        type: sum
+        description: Linked CardFee sum consolidated to EUR (as-of FX). Do not add to settlement.
+      - name: settlement_in_gbp
+        sql: "{card_txn_reporting.settlement_amount_gbp}"
+        type: sum
+      - name: settlement_in_usd
+        sql: "{card_txn_reporting.settlement_amount_usd}"
+        type: sum
+      - name: presentment_count
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then 1 else 0 end"
+        type: sum
+      - name: decline_count
+        sql: "case when {CUBE}.txn_outcome = 'decline' then 1 else 0 end"
+        type: sum
+      - name: missing_auth_count
+        sql: "case when {CUBE}.missing_auth = 1 then 1 else 0 end"
+        type: sum
+        description: Presentments with no auth_sk
+      - name: missing_posting_count
+        sql: "case when {CUBE}.missing_posting = 1 then 1 else 0 end"
+        type: sum
+        description: Presentments with no ledger posting
+      - name: decline_missing_auth_count
+        sql: "case when {CUBE}.decline_missing_auth = 1 then 1 else 0 end"
+        type: sum
       - name: count
         type: count
