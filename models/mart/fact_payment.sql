@@ -8,7 +8,7 @@
     dist='entity_sk',
     sort=['date_sk', 'source_system'],
     pre_hook=["{{ delete_missing_fact_payments() }}"],
-    post_hook=["grant select on {{ this }} to airbyte_spike"]
+    post_hook=["alter table {{ this }} owner to airbyte_spike"]
 ) }}
 
 -- Grain: one portal payment notification (B4B or B4S), or one Oversight payment.

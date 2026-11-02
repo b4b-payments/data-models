@@ -4,7 +4,7 @@
     materialized='table',
     dist='payment_sk',
     sort=['date_sk', 'payment_sk'],
-    post_hook=["grant select on {{ this }} to airbyte_spike"]
+    post_hook=["alter table {{ this }} owner to airbyte_spike"]
 ) }}
 
 -- Slim reporting fact: one row per payment_sk with GBP/EUR/USD amounts.
