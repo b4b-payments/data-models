@@ -3,8 +3,7 @@
     tags=['fx', 'payments', 'mart'],
     materialized='table',
     dist='payment_sk',
-    sort=['date_sk', 'payment_sk'],
-    post_hook=["alter table {{ this }} owner to airbyte_spike"]
+    sort=['date_sk', 'payment_sk']
 ) }}
 
 -- Slim reporting fact: one row per payment_sk with GBP/EUR/USD amounts.
