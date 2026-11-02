@@ -1,5 +1,9 @@
 # Decisions — data-models
 
+## 2026-11-02 — activity_ts is the product-line clock (final)
+
+**Decision (final):** `fact_payment.activity_ts` is the clock for the Payments trial product lines. Portal incoming is `company_deposits.created_at`, else the booking time (`event_ts`). Portal outgoing is `payments.updated_at` when the lifecycle is Processed, Rejected, Returned, Reversed, or Error, else the booking time. Oversight is the processed timestamp, else `created_at`. `event_ts` stays the booking date. `status_updated_at` stays the status clock and is still null on portal incoming.
+
 ## 2026-11-02 — fact_card_txn week prove-out (final for this slice)
 
 **Decision (final for week prove-out):** `spike.fact_card_txn` is a derived incremental mart (not SoR). Grain: presentment = one `FinId`; decline = one EHI decline with no FinId. Auth attributes are optional and prefixed `auth_*`. First build uses vars `card_txn_week_start` / `card_txn_week_end` (default 2026-10-20 → 2026-10-26). GPS event clocks use `localdateutc` as MMDDHHMMSS with year from `localdate` (macro `gps_event_ts_utc`). Companion FX table is deferred and will not be named `*_reporting`.

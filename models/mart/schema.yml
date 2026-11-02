@@ -202,6 +202,13 @@ models:
               config:
                 where: "source_system in ('portal_b4b', 'portal_b4s')"
                 severity: warn
+      - name: activity_ts
+        description: >
+          Clock for the product lines. Portal incoming is the deposit created time,
+          else the booking time. Portal outgoing is the status time, else the booking time.
+          Oversight is the processed time, else created_at.
+        data_tests:
+          - not_null
       - name: date_sk
         data_tests:
           - relationships:

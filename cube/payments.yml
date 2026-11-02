@@ -70,6 +70,9 @@ cubes:
 
   - name: currencies
     sql_table: spike.dim_currency
+    description: >
+      Currency catalogue. iso_currency_code + numeric_code are ISO 4217.
+      currency_code is the catalogue key (includes non-ISO FX tickers).
     dimensions:
       - name: id
         sql: id
@@ -78,9 +81,24 @@ cubes:
       - name: currency_code
         sql: currency_code
         type: string
+        description: Catalogue code (ISO alpha for fiat; ticker for crypto extras)
+      - name: iso_currency_code
+        sql: iso_currency_code
+        type: string
+        description: ISO 4217 alphabetic code (null if non-ISO)
+      - name: numeric_code
+        sql: numeric_code
+        type: string
+        description: ISO 4217 numeric code
       - name: currency_name
         sql: currency_name
         type: string
+      - name: minor_units
+        sql: minor_units
+        type: number
+      - name: is_iso_seed
+        sql: is_iso_seed
+        type: boolean
     measures:
       - name: count
         type: count
@@ -688,6 +706,13 @@ cubes:
         sql: status_updated_at
         type: time
         description: When the lifecycle status last changed. Null on incoming portal payments.
+      - name: activity_ts
+        sql: activity_ts
+        type: time
+        description: >
+          Product-line clock. Portal incoming is the deposit created time, else the booking time.
+          Portal outgoing is the status time, else the booking time.
+          Oversight is the processed time, else created_at.
       - name: sca_applied
         sql: sca_applied
         type: boolean

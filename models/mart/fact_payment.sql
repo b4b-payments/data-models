@@ -95,6 +95,19 @@ oversight as (
                 nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'latestStatusChangedTimestamp'), '')
             ), '+', 1), 'T', ' ') as timestamp)
         end as status_updated_at,
+        coalesce(
+            case
+                when coalesce(
+                    nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'processedTimestamp'), ''),
+                    nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'latestStatusChangedTimestamp'), '')
+                ) is null then cast(null as timestamp)
+                else cast(replace(split_part(coalesce(
+                    nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'processedTimestamp'), ''),
+                    nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'latestStatusChangedTimestamp'), '')
+                ), '+', 1), 'T', ' ') as timestamp)
+            end,
+            p.created_at
+        ) as activity_ts,
         case
             when coalesce(nullif(json_extract_path_text(p.banking_circle_api_response, 'payment', 'classification'), ''), 'Outgoing') = 'Incoming'
                 then {{ sk_hash_ready("'OVERSIGHT'", "nullif(trim(cast(p.beneficiary_id as varchar)), '')") }}
@@ -208,7 +221,8 @@ dep_src as (
         'portal_b4b' as source_system,
         id,
         banking_circle_transaction_notification_id,
-        company_id
+        company_id,
+        created_at
     from {{ source('spike_stg', 'stg_b4b_company_deposits') }}
     where banking_circle_transaction_notification_id is not null
     {% if is_incremental() %}
@@ -221,7 +235,8 @@ dep_src as (
         'portal_b4s' as source_system,
         id,
         banking_circle_transaction_notification_id,
-        company_id
+        company_id,
+        created_at
     from {{ source('spike_stg', 'stg_b4s_company_deposits') }}
     where banking_circle_transaction_notification_id is not null
     {% if is_incremental() %}
@@ -236,6 +251,7 @@ dep as (
         source_system,
         banking_circle_transaction_notification_id,
         company_id,
+        created_at,
         row_number() over (
             partition by source_system, banking_circle_transaction_notification_id
             order by id desc
@@ -415,6 +431,21 @@ portal as (
         end as status_updated_at,
         case
             when upper(coalesce(bctn.credit_debit_indicator, '')) = 'CREDIT'
+                then coalesce(
+                    dep.created_at,
+                    coalesce(bctn.transaction_date, bctn.value_date, bctn.created_at)
+                )
+            else coalesce(
+                case
+                    when upper(coalesce(bctn.credit_debit_indicator, '')) = 'DEBIT'
+                     and pay.status in ('Processed', 'Rejected', 'Returned', 'Reversed', 'ERROR', 'Error')
+                        then pay.updated_at
+                end,
+                coalesce(bctn.transaction_date, bctn.value_date, bctn.created_at)
+            )
+        end as activity_ts,
+        case
+            when upper(coalesce(bctn.credit_debit_indicator, '')) = 'CREDIT'
                 then {{ sk_hash_ready("case bctn.source_system when 'portal_b4b' then 'B4B' when 'portal_b4s' then 'B4S' else bctn.source_system end", "nullif(trim(bctn.counterparty_account), '')") }}
             else {{ sk_unknown() }}
         end as debtor_party_sk,
@@ -520,6 +551,7 @@ final as (
         value_date_sk,
         status_updated_date_sk,
         status_updated_at,
+        activity_ts,
         debtor_party_sk,
         creditor_party_sk,
         debtor_country_sk,
