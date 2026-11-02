@@ -523,6 +523,10 @@ cubes:
       - name: account_status
         sql: account_status
         type: string
+      - name: b4b_legal_entity
+        sql: b4b_legal_entity
+        type: string
+        description: B4B regulated entity for the company — UK | US | LT (account grain)
       - name: currency_sk
         sql: currency_sk
         type: number

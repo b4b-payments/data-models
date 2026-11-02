@@ -91,6 +91,11 @@ models:
           - not_null:
               config:
                 where: "source_system in ('portal_b4b', 'portal_b4s')"
+      - name: b4b_legal_entity
+        description: >
+          B4B regulated entity for the company float — UK | US | LT from
+          portal companies.legal_entity_country. Account grain (not CLE).
+          Null for Oversight and unresolved accounts.
 
   - name: fact_payment
     description: >

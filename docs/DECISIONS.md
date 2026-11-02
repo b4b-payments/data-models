@@ -1,5 +1,9 @@
 # Decisions — data-models
 
+## 2026-11-02 — B4B legal entity is first-class on the account (final)
+
+**Decision (final):** Payments reporting filters by **B4B legal entity** = portal company `legal_entity_country` (**UK** | **US** | **LT**), promoted as `dim_account.b4b_legal_entity`. Account/company grain — not CLE. CLE `tm_incorporation_country` / `dim_entity.legal_entity_country` stay unused for this cut (currently empty; some CLEs span multiple B4B LEs). Same standing as Product across Cube and all Payments BI.
+
 ## 2026-10-30 — dim_country outriggers risk + geo + jurisdiction (demo final)
 
 Thin ISO `dim_country`. Type-1 `dim_country_risk` (Compliance Master Sheet v3), `dim_country_geo` (GeoNames countryInfo), `dim_jurisdiction` (XK / UA-* / PT-*). File pipeline via data-engineering `run_country_ref_load.sh`. No risk SK on `fact_payment`. Industry feeds later.

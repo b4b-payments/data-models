@@ -7,7 +7,8 @@
 -- Portal accounts link to the CLE on the same portal (B4B or B4S). No GID on accounts.
 --
 -- Live staging column notes (portal companies):
---   display_name, name, currency, client_legal_entity_id, closed
+--   display_name, name, currency, client_legal_entity_id, closed,
+--   legal_entity_country (B4B regulated entity: UK / US / LT)
 --   NO trading_name / status / bc_company_number
 -- Oversight companies:
 --   legal_name, trading_name, client_id — NO name / enabled / bc_company_number
@@ -25,6 +26,7 @@ with portal_accounts as (
             when c.closed is false then 'open'
             else null
         end as account_status,
+        nullif(upper(trim(c.legal_entity_country)), '') as b4b_legal_entity,
         cast(null as varchar) as bc_company_number
     from {{ source('spike_stg', 'stg_b4b_companies') }} c
     where c.client_legal_entity_id is not null
@@ -42,6 +44,7 @@ with portal_accounts as (
             when c.closed is false then 'open'
             else null
         end as account_status,
+        nullif(upper(trim(c.legal_entity_country)), '') as b4b_legal_entity,
         cast(null as varchar) as bc_company_number
     from {{ source('spike_stg', 'stg_b4s_companies') }} c
     where c.client_legal_entity_id is not null
@@ -61,6 +64,7 @@ oversight_accounts as (
             when cl.enabled is false then 'disabled'
             else null
         end as account_status,
+        cast(null as varchar) as b4b_legal_entity,
         cast(cl.bc_company_number as varchar) as bc_company_number
     from {{ source('spike_stg', 'stg_oversight_companies') }} c
     left join {{ source('spike_stg', 'stg_oversight_clients') }} cl
@@ -82,6 +86,7 @@ joined as (
         u.account_name,
         cur.id as currency_sk,
         u.account_status,
+        u.b4b_legal_entity,
         u.bc_company_number,
         getdate() as loaded_at
     from unioned u
@@ -102,6 +107,7 @@ select
     account_name,
     currency_sk,
     account_status,
+    b4b_legal_entity,
     bc_company_number,
     loaded_at
 from joined
