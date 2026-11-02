@@ -29,6 +29,6 @@ A portal company is a currency account. The legal entity is the client legal ent
 | `bridge_card_lifecycle_match` | One link between card evidence. No amounts |
 | `fct_card_transaction_snapshot` | One current lifecycle group. Counts only |
 
-Card lifecycle join keys (**AuthId**, **FinId**, **Traceid_Lifecycle** / `processor_traceid`, **transaction_link**, fees on FinId, etc.) are distinct — see data-engineering [docs/25_cards_star_council_plan.md](https://github.com/b4b-payments/data-engineering/blob/main/docs/25_cards_star_council_plan.md) § “Card-transaction lifecycle link keys”. Do not treat `transaction_link` as `Traceid_Lifecycle`.
+Cards modeling baseline: a **lifecycle of evidence** (auth → EHI → presentment → ledger → fees; loads parallel). Stages can arrive late or out of order; atomic facts stay the grain; bridge/snapshot assemble. Link keys (**AuthId**, **FinId**, **Traceid_Lifecycle** / `processor_traceid`, **transaction_link**, fees on FinId, etc.) are distinct — see data-engineering `docs/25_cards_star_council_plan.md` §§ lifecycle link keys and modeling baseline. Do not treat `transaction_link` as `Traceid_Lifecycle`.
 
 `models/mart` is the dbt project. `sql/` is the reference dimensions the payment fact joins to. `cube/payments.yml` is payments, entities, accounts, dates, currencies, and payment rails. `cube/cards.yml` names a separate measure on each cards fact.
