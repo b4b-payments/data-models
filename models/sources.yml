@@ -107,6 +107,10 @@ sources:
     schema: spike
     tables:
       - name: dim_payment_rail
+        identifier: dim_payment_rail_build
+        description: >
+          Live rail dim. payment_rail is banking_circle_reporting.payments.payment_rail.
+          spike.dim_payment_rail is the admin-owned copy and is not the live read.
       - name: dim_currency
       - name: dim_date
 

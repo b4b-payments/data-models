@@ -1,9 +1,11 @@
 cubes:
   - name: payment_rails
-    sql_table: spike.dim_payment_rail
+    sql_table: spike.dim_payment_rail_build
     description: >
       Payment rail catalogue (F### grain). fact.rail_sk joins to id.
-      payment_rail is the BC scheme name for grouping (historic F-code bridge).
+      payment_rail is the label on banking_circle_reporting.payments
+      (one name per F### in transaction_reference).
+      The admin-owned spike.dim_payment_rail is not the live read.
 
     dimensions:
       - name: id
@@ -21,7 +23,7 @@ cubes:
         sql: payment_rail
         type: string
         title: Payment rail
-        description: BC scheme name (Faster Payments, SEPA (SCT), Local Clearing, …)
+        description: Banking Circle payments.payment_rail for this F-code (Faster Payments, SEPA (SCT), DKK Inst, …)
       - name: scheme_family
         sql: scheme_family
         type: string
