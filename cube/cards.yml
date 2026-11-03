@@ -169,24 +169,21 @@ cubes:
         description: Load calendar day as timestamp for BI time filters
 
     measures:
+      # else 0 — a Cube measure filter compiles to CASE without ELSE, so a group
+      # with no matching rows sums to NULL. Redshift ORDER BY DESC puts those
+      # first and Superset renders them as N/A.
       - name: portal_loads
-        sql: "{CUBE}.amount"
+        sql: "case when {CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1 then {CUBE}.amount else 0 end"
         type: sum
-        description: Native portal loads (eng only)
-        filters:
-          - sql: "{CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1"
+        description: Native portal loads (eng only). Rows that are not a successful portal load contribute 0.
       - name: gps_loads
-        sql: "{CUBE}.amount"
+        sql: "case when {CUBE}.source_system in ('gps_mc', 'gps_visa') then {CUBE}.amount else 0 end"
         type: sum
-        description: Native GPS load confirmations (eng only — do not add to portal_loads)
-        filters:
-          - sql: "{CUBE}.source_system in ('gps_mc', 'gps_visa')"
+        description: Native GPS load confirmations (eng only — do not add to portal_loads). Other rows contribute 0.
       - name: portal_load_in_eur
-        sql: "{card_load_reporting.amount_eur}"
+        sql: "case when {CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1 then {card_load_reporting.amount_eur} else 0 end"
         type: sum
-        description: Successful portal loads consolidated to EUR (as-of FX). Cards BI default.
-        filters:
-          - sql: "{CUBE}.source_system in ('portal_b4b', 'portal_b4s') and {CUBE}.successful = 1"
+        description: Successful portal loads consolidated to EUR (as-of FX). Cards BI default. GPS-only and unsuccessful rows contribute 0.
       - name: count
         type: count
 
@@ -363,18 +360,18 @@ cubes:
         type: sum
         description: Native linked CardFee sum (eng only — do not use on Cards BI charts)
       - name: settlement_in_eur
-        sql: "{card_txn_reporting.settlement_amount_eur}"
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then {card_txn_reporting.settlement_amount_eur} else 0 end"
         type: sum
-        description: Scheme settlement consolidated to EUR (as-of FX). Cards BI default.
+        description: Scheme settlement consolidated to EUR (as-of FX). Cards BI default. Declines contribute 0.
       - name: fee_in_eur
-        sql: "{card_txn_reporting.fee_amount_eur}"
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then coalesce({card_txn_reporting.fee_amount_eur}, 0) else 0 end"
         type: sum
-        description: Linked CardFee sum consolidated to EUR (as-of FX). Do not add to settlement.
+        description: Linked CardFee sum consolidated to EUR (as-of FX). Do not add to settlement. Declines contribute 0.
       - name: settlement_in_gbp
-        sql: "{card_txn_reporting.settlement_amount_gbp}"
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then {card_txn_reporting.settlement_amount_gbp} else 0 end"
         type: sum
       - name: settlement_in_usd
-        sql: "{card_txn_reporting.settlement_amount_usd}"
+        sql: "case when {CUBE}.txn_outcome = 'presentment' then {card_txn_reporting.settlement_amount_usd} else 0 end"
         type: sum
       - name: presentment_count
         sql: "case when {CUBE}.txn_outcome = 'presentment' then 1 else 0 end"
