@@ -200,11 +200,12 @@ presentments as (
         fs.payment_token_type,
         fs.payment_token_device_type,
         {{ presentment_channel_from_flags(
+            'f.source_system',
             'coalesce(po.atm, 0)',
             'coalesce(po.pos, 0)',
-            'coalesce(po.ecommerce, 0)',
             'f.mcc_code'
         ) }} as presentment_channel,
+        {{ card_initiation('coalesce(po.ecommerce, 0)') }} as initiation,
         a.date_sk as auth_date_sk,
         a.settlement_date_sk as auth_settlement_date_sk,
         a.txn_amount as auth_txn_amount,
@@ -224,7 +225,7 @@ presentments as (
         a.billing_currency_sk as auth_billing_currency_sk,
         aus.auth_event_ts_utc,
         {{ normalize_wallet('aus.payment_token_wallet') }} as auth_wallet,
-        {{ presentment_channel_from_flags('0', '0', '0', 'a.mcc_code') }} as auth_presentment_channel,
+        {{ presentment_channel_from_flags('cast(null as varchar)', '0', '0', 'a.mcc_code') }} as auth_presentment_channel,
         po.posting_sk,
         po.source_system as posting_source_system,
         po.source_ledger_id as posting_source_ledger_id,
@@ -333,6 +334,7 @@ declines as (
         cast(null as varchar) as payment_token_type,
         cast(null as varchar) as payment_token_device_type,
         'unknown' as presentment_channel,
+        'non_remote' as initiation,
         a.date_sk as auth_date_sk,
         a.settlement_date_sk as auth_settlement_date_sk,
         a.txn_amount as auth_txn_amount,
@@ -356,7 +358,7 @@ declines as (
         aus.auth_event_ts_utc,
         {{ normalize_wallet('aus.payment_token_wallet') }} as auth_wallet,
         {{ presentment_channel_from_flags(
-            '0', '0', '0',
+            'cast(null as varchar)', '0', '0',
             "coalesce(nullif(trim(cast(a.mcc_code as varchar)), ''), nullif(trim(cast(e.mcc_code as varchar)), ''))"
         ) }} as auth_presentment_channel,
         cast(null as bigint) as posting_sk,
@@ -480,6 +482,7 @@ select
     c.processor_program_id,
     c.presentment_event_ts_utc,
     c.presentment_channel,
+    c.initiation,
     c.wallet,
     c.payment_token_type,
     c.payment_token_device_type,

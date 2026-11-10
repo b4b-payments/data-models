@@ -51,13 +51,25 @@ case
 end
 {%- endmacro %}
 
-{% macro presentment_channel_from_flags(atm_sql, pos_sql, ecommerce_sql, mcc_sql) -%}
+{# Channel is pos, atm, or online.
+   online is only Visa CardOnlineFinancial (source_system gps_visa_online).
+   atm is the portal atm flag, else MCC 6010 or 6011.
+   pos is the portal pos flag.
+   Ecommerce is not a channel. It is initiation: remote or non_remote. #}
+{% macro presentment_channel_from_flags(source_system_sql, atm_sql, pos_sql, mcc_sql) -%}
 case
+    when {{ source_system_sql }} = 'gps_visa_online' then 'online'
     when coalesce({{ atm_sql }}, 0) = 1 then 'atm'
-    when coalesce({{ ecommerce_sql }}, 0) = 1 then 'online'
     when coalesce({{ pos_sql }}, 0) = 1 then 'pos'
     when lpad(trim(cast({{ mcc_sql }} as varchar)), 4, '0') in ('6010', '6011') then 'atm'
     else 'unknown'
+end
+{%- endmacro %}
+
+{% macro card_initiation(ecommerce_sql) -%}
+case
+    when coalesce({{ ecommerce_sql }}, 0) = 1 then 'remote'
+    else 'non_remote'
 end
 {%- endmacro %}
 

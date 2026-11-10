@@ -1,5 +1,13 @@
 # Decisions — data-models
 
+## 2026-11-03 — Channel is pos, atm, or Visa online; initiation is separate (final)
+
+**Decision (final):** Supersedes the same-day “presentment channel uses remote” entry. `presentment_channel` is `pos`, `atm`, `online`, or `unknown`. `online` is only Visa `CardOnlineFinancial` (`source_system = gps_visa_online`). `initiation` is `remote` or `non_remote` from the portal ecommerce flag, and it does not change the channel. ATM still wins over pos. MCC 6010 and 6011 are `atm` when neither flag is set.
+
+## 2026-11-03 — Presentment channel uses remote, not online (superseded)
+
+**Decision (superseded 2026-11-03):** Replaced the same day. Ecommerce is `initiation = remote`, not a channel value.
+
 ## 2026-11-02 — activity_ts is the product-line clock (final)
 
 **Decision (final):** `fact_payment.activity_ts` is the clock for the Payments trial product lines. Portal incoming is `company_deposits.created_at`, else the booking time (`event_ts`). Portal outgoing is `payments.updated_at` when the lifecycle is Processed, Rejected, Returned, Reversed, or Error, else the booking time. Oversight is the processed timestamp, else `created_at`. `event_ts` stays the booking date. `status_updated_at` stays the status clock and is still null on portal incoming.

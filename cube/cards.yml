@@ -317,6 +317,13 @@ cubes:
       - name: presentment_channel
         sql: presentment_channel
         type: string
+        description: >
+          pos | atm | online | unknown. online is only Visa CardOnlineFinancial
+          (source_system gps_visa_online). Ecommerce is initiation, not a channel.
+      - name: initiation
+        sql: initiation
+        type: string
+        description: remote | non_remote. remote is the portal ecommerce flag. Independent of presentment_channel.
       - name: wallet
         sql: wallet
         type: string

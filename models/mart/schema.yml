@@ -411,6 +411,12 @@ models:
         description: Legal entity display name denormalised from dim_entity.
       - name: event_ts
         description: Coalesced presentment / EHI / posting / auth UTC clock for time filters.
+      - name: presentment_channel
+        description: >
+          pos | atm | online | unknown. online is only Visa CardOnlineFinancial
+          (source_system gps_visa_online). Ecommerce is initiation, not a channel.
+      - name: initiation
+        description: remote | non_remote. remote is the portal ecommerce flag. Independent of presentment_channel.
       - name: missing_auth
         description: 1 when presentment has no auth_sk.
       - name: missing_posting
